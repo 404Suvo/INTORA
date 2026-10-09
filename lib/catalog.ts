@@ -1,0 +1,189 @@
+import { ProductCatalogItem } from "./types";
+
+/**
+ * Authoritative in-memory product catalog.
+ * In accordance with Hard Rule 3: Never trust AI output.
+ * Product IDs, prices, availability, and totals must come from the app's catalog.
+ * All prices are integers in paise (INR minor units). 1 INR = 100 paise.
+ */
+export const PRODUCT_CATALOG: readonly ProductCatalogItem[] = [
+  {
+    id: "college-notebook-pack",
+    name: "5-Subject Spiral Notebooks (Pack of 3)",
+    category: "stationery",
+    description: "High quality 300-page ruled spiral notebooks for lecture notes and project assignments.",
+    priceMinor: 25000, // ₹250.00
+    inStock: true,
+    availableStock: 50,
+    unit: "pack",
+  },
+  {
+    id: "gel-pen-set",
+    name: "Fine Gel Pens Assorted (Pack of 10)",
+    category: "stationery",
+    description: "0.5mm smooth black and blue ink pens for long writing sessions.",
+    priceMinor: 12000, // ₹120.00
+    inStock: true,
+    availableStock: 100,
+    unit: "pack",
+  },
+  {
+    id: "highlighter-pack",
+    name: "Pastel Chisel Highlighters (Pack of 5)",
+    category: "stationery",
+    description: "Non-bleeding pastel ink highlighters for textbook studying and notes revision.",
+    priceMinor: 16000, // ₹160.00
+    inStock: true,
+    availableStock: 40,
+    unit: "pack",
+  },
+  {
+    id: "sticky-notes-pad",
+    name: "Sticky Notes Color Cube (400 Sheets)",
+    category: "stationery",
+    description: "3x3 inch self-adhesive notes for quick reminders, page flags, and brainstorming.",
+    priceMinor: 11000, // ₹110.00
+    inStock: true,
+    availableStock: 60,
+    unit: "pad",
+  },
+  {
+    id: "stainless-water-bottle",
+    name: "Insulated Stainless Steel Bottle (750ml)",
+    category: "supplies",
+    description: "Double-walled vacuum insulated flask keeping water cold for 24 hours.",
+    priceMinor: 45000, // ₹450.00
+    inStock: true,
+    availableStock: 35,
+    unit: "piece",
+  },
+  {
+    id: "energy-bar-box",
+    name: "Nutty Granola Energy Bars (Box of 6)",
+    category: "snacks",
+    description: "Wholesome oats, almonds, and honey snack bars for long college activity days.",
+    priceMinor: 30000, // ₹300.00
+    inStock: true,
+    availableStock: 45,
+    unit: "box",
+  },
+  {
+    id: "power-bank-10000",
+    name: "10,000mAh Dual-Port Power Bank",
+    category: "electronics",
+    description: "Slim fast-charging external battery pack with USB-A and USB-C output.",
+    priceMinor: 99900, // ₹999.00
+    inStock: true,
+    availableStock: 25,
+    unit: "piece",
+  },
+  {
+    id: "usb-flash-drive-64gb",
+    name: "64GB High-Speed USB 3.2 Drive",
+    category: "electronics",
+    description: "Reliable metal keychain flash drive for presentations and lab assignments.",
+    priceMinor: 49900, // ₹499.00
+    inStock: true,
+    availableStock: 30,
+    unit: "piece",
+  },
+  {
+    id: "college-backpack",
+    name: "Water-Resistant Campus Daypack (24L)",
+    category: "supplies",
+    description: "Durable ergonomic backpack with padded laptop sleeve and multiple utility pockets.",
+    priceMinor: 89900, // ₹899.00
+    inStock: true,
+    availableStock: 20,
+    unit: "piece",
+  },
+  {
+    id: "hand-sanitizer-pocket",
+    name: "Pocket Hand Sanitizer Spray (Pack of 3)",
+    category: "hygiene",
+    description: "70% alcohol moisturizing spray with soothing aloe vera.",
+    priceMinor: 9900, // ₹99.00
+    inStock: true,
+    availableStock: 80,
+    unit: "pack",
+  },
+  {
+    id: "mini-first-aid-kit",
+    name: "Compact 20-Piece Travel First Aid Kit",
+    category: "supplies",
+    description: "Essential bandages, antiseptic wipes, burn gel, and tape in a travel pouch.",
+    priceMinor: 22000, // ₹220.00
+    inStock: true,
+    availableStock: 25,
+    unit: "kit",
+  },
+  {
+    id: "electrolyte-hydration-powder",
+    name: "Electrolyte Hydration Drink Mix (Pack of 6)",
+    category: "snacks",
+    description: "Refreshing lemon-flavored rehydration packets with essential minerals.",
+    priceMinor: 15000, // ₹150.00
+    inStock: true,
+    availableStock: 50,
+    unit: "pack",
+  },
+  {
+    id: "wired-earphones",
+    name: "Bass Boost In-Ear Earphones with Mic",
+    category: "electronics",
+    description: "Tangle-free 3.5mm wired earphones for study playlists and conference calls.",
+    priceMinor: 34900, // ₹349.00
+    inStock: true,
+    availableStock: 30,
+    unit: "piece",
+  },
+  {
+    id: "id-card-lanyard-holder",
+    name: "Durable Campus ID Card Badge & Lanyard",
+    category: "supplies",
+    description: "Transparent waterproof card holder with quick-release breakaway lanyard.",
+    priceMinor: 8000, // ₹80.00
+    inStock: true,
+    availableStock: 100,
+    unit: "piece",
+  },
+  {
+    id: "discontinued-usb-fan",
+    name: "Portable USB Desk Fan",
+    category: "electronics",
+    description: "Compact desk fan - currently sold out.",
+    priceMinor: 19900, // ₹199.00
+    inStock: false,
+    availableStock: 0,
+    unit: "piece",
+  },
+];
+
+export function getProductById(id: string): ProductCatalogItem | undefined {
+  return PRODUCT_CATALOG.find((p) => p.id === id);
+}
+
+export function searchCatalog(query: string, category?: string): ProductCatalogItem[] {
+  const q = query.toLowerCase().trim();
+  return PRODUCT_CATALOG.filter((item) => {
+    if (category && item.category !== category) return false;
+    if (!q) return true;
+    return (
+      item.name.toLowerCase().includes(q) ||
+      item.description.toLowerCase().includes(q) ||
+      item.id.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q)
+    );
+  });
+}
+
+/** Format minor units (paise) to human-readable INR string */
+export function formatInr(minor: number): string {
+  const rupees = minor / 100;
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(rupees);
+}
