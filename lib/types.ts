@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 /**
  * Supported currency is strictly Indian Rupees (INR).
  * All monetary amounts are integer minor units (paise). 1 INR = 100 paise.
