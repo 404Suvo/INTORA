@@ -5,7 +5,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "node ./node_modules/tsx/dist/cli.mjs --test tests/phase1.test.ts tests/phase2.test.ts test/ShoppingIntentRegistry.test.ts",
+    "test:phase1": "node ./node_modules/tsx/dist/cli.mjs --test tests/phase1.test.ts",
+    "test:phase2": "node ./node_modules/tsx/dist/cli.mjs --test tests/phase2.test.ts",
+    "test:contracts": "node ./node_modules/tsx/dist/cli.mjs --test test/ShoppingIntentRegistry.test.ts",
+    "smoke": "node ./node_modules/tsx/dist/cli.mjs scripts/smoke.ts",
+    "deploy:local": "node ./node_modules/tsx/dist/cli.mjs scripts/deploy.ts",
+    "deploy:base-sepolia": "npx hardhat run scripts/deploy.ts --network baseSepolia"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -31,5 +38,6 @@
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "zod": "^3.25.76"
-  }
+  },
+  "type": "module"
 }

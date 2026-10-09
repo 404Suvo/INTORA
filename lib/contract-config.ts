@@ -111,6 +111,23 @@ export function getRegistryContractAddress(): Address {
     return getAddress(envAddr);
   }
 
+  try {
+    // Check if deployed-address.json exists
+    if (typeof window === "undefined") {
+      const fs = require("fs");
+      const path = require("path");
+      const deployedFile = path.join(process.cwd(), "contracts", "deployed-address.json");
+      if (fs.existsSync(deployedFile)) {
+        const config = JSON.parse(fs.readFileSync(deployedFile, "utf8"));
+        if (config.address && isAddress(config.address)) {
+          return getAddress(config.address);
+        }
+      }
+    }
+  } catch {
+    // Ignore in browser context
+  }
+
   // Fallback to a zero-placeholder if not yet configured
   return "0x0000000000000000000000000000000000000000";
 }
