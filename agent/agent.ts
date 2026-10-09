@@ -1,25 +1,43 @@
 /**
- * THE AGENT
+ * THE INTENT-TO-COMMERCE AGENT
  *
- * An agent is a loop:
- *   1. Send the chat + the list of tools to Gemini.
- *   2. If Gemini wants to call a tool -> run it, send back the result, repeat.
- *   3. If Gemini answers with text -> done.
+ * Controlled agent loop:
+ *   1. Send chat history + tools to Gemini.
+ *   2. Run tool calls requested by Gemini with bounded iterations (MAX_STEPS = 6).
+ *   3. Enforce catalog grounding, integer paise calculations, and versioned intent preparation.
+ *   4. Return final response with tool execution traces.
  */
 import { GoogleGenAI, type Content, type Part } from "@google/genai";
 import { tools } from "./tools";
 
-export const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
-const MAX_STEPS = 5;
+export const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MAX_STEPS = 6;
 
-const SYSTEM_PROMPT =
-  "You are a helpful agent with your own crypto wallet. Use your tools when they help. " +
-  "If a tool costs money, just use it: your wallet pays automatically. Keep answers short and friendly.";
+const SYSTEM_PROMPT = `
+You are Intent-to-Commerce, an expert AI shopping planner.
+Your mission is to transform a user's natural-language situation and budget into a verified, versioned shopping bundle, ready for MetaMask commitment recording on Base Sepolia.
+
+Rules:
+1. Always parse budgets into integer paise (INR). 1 INR = 100 paise. (e.g. Rs 3,000 = 300,000 paise; Rs 2,000 = 200,000 paise).
+2. Never invent or hallucinate products or prices. Always search the catalog using 'search_products' or 'optimize_bundle'.
+3. Always prepare or revise the intent using 'prepare_intent'.
+4. For revisions (e.g., "budget is now Rs 2,000, keep the essentials"), retain the EXACT SAME intentId and call 'prepare_intent' with that intentId so it produces version + 1 and calculates a diff.
+5. In your final answer, clearly list:
+   - The selected items with quantities and prices in INR.
+   - Total cost vs budget.
+   - The intent ID, Version, and Plan Hash.
+   - A diff if this is a revision.
+   - State the notice: "This records a commitment to your approved plan. It does not place an order."
+`.trim();
 
 export type ChatMessage = { role: "user" | "agent"; text: string };
 export type Step = { tool: string; args: unknown; result: unknown; error?: boolean };
 
 export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string }) {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY environment variable is not configured.");
+  }
+
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const contents: Content[] = history.map((m) => ({
     role: m.role === "user" ? "user" : "model",
@@ -46,9 +64,11 @@ export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string })
     });
 
     const calls = response.functionCalls ?? [];
-    if (calls.length === 0) return { answer: response.text ?? "", steps };
+    if (calls.length === 0) {
+      return { answer: response.text ?? "", steps };
+    }
 
-    // Keep Gemini's turn in the history, then run every tool it asked for.
+    // Keep Gemini's turn in the contents history
     contents.push(response.candidates![0].content!);
     const results: Part[] = [];
 
@@ -57,7 +77,7 @@ export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string })
       let result: unknown;
       let error = false;
       try {
-        if (!tool) throw new Error(`No tool named ${call.name}`);
+        if (!tool) throw new Error(`Unknown tool requested: ${call.name}`);
         result = await tool.run(call.args ?? {}, ctx);
       } catch (err) {
         result = { error: err instanceof Error ? err.message : String(err) };
@@ -70,5 +90,5 @@ export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string })
     contents.push({ role: "user", parts: results });
   }
 
-  return { answer: "I hit my step limit. Try a simpler question.", steps };
+  return { answer: "I completed the planning steps within the limit. Review the plan below.", steps };
 }
