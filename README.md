@@ -1,193 +1,206 @@
-# agentmaxxin
+# Intent-to-Commerce: AI Shopping Planner on Base Sepolia
 
-A minimal Next.js template for building AI agents that call tools and pay for services with their own crypto wallet. The agent is powered by Google Gemini.
+**Intent-to-Commerce** turns natural-language shopping requests into catalog-grounded bundles and records user-approved plans as immutable, versioned cryptographic commitments on **Base Sepolia** (testnet only).
 
-The template is intentionally small. You will spend almost all of your time in a single file, `agent/tools.ts`, where each tool is a plain TypeScript function that the agent can decide to call.
+---
 
-## What You Get
+## Architecture Overview
 
-1. A working agent loop that sends your message to Gemini, runs any tools Gemini asks for, and returns the final answer.
-2. A tools file where you add, remove, or change the functions your agent can use.
-3. An agent wallet that can sign payments, based on the x402 payment pattern.
-4. A mock paid weather API that refuses requests until the agent pays for them.
-5. A single page interface with guided setup, a one click wallet button, and a chat that shows every tool call and payment.
+```
+Natural Language + Budget
+         │
+         ▼
+Gemini Agent with Controlled Tools (Server-Side)
+  ├── analyze_situation      (parses situation & integer budget in paise)
+  ├── search_products        (authoritative catalog search)
+  ├── optimize_bundle        (prioritizes items within budget cap)
+  └── prepare_intent         (independent catalog validation & canonical keccak256 hash)
+         │
+         ▼
+App Independent Validation & Recalculation
+  ├── Overwrites AI hallucinated prices with catalog truth
+  ├── Merges duplicates & sums quantities
+  ├── Validates inventory availability & future expiry
+  └── Computes deterministic UTF-8 canonical JSON
+         │
+         ▼
+User Reviews & Approves Plan in UI
+  ├── Hash recomputed immediately prior to submission
+  └── User approves via MetaMask (Agent NEVER signs or submits)
+         │
+         ▼
+ShoppingIntentRegistry.sol (Base Sepolia Testnet)
+  ├── recordIntent (Version 1 commitment)
+  └── recordVersion (Version 2+ revisions with SAME intentId)
+         │
+         ▼
+On-Chain Verification Panel
+  ├── Reads commitment via viem publicClient
+  └── Compares onChainHash == recomputedHash (PASS ✅ / FAIL ❌)
+```
+
+---
+
+## Hard Rules Strictly Enforced
+
+1. **Server-Side API Key Only**: `GEMINI_API_KEY` is accessible exclusively on the server (`app/api/agent/route.ts`). Never bundled into client-side code.
+2. **User-Approved Transactions**: The AI agent and server never sign or submit transactions. They only prepare calldata; the user approves transactions through MetaMask.
+3. **Zero Trust in AI Calculations**: Product IDs, prices, stock availability, and totals come strictly from `lib/catalog.ts`. Any hallucinated prices are flagged and overwritten with catalog values.
+4. **Integer Minor Units (Paise for INR)**: No floats anywhere. ₹3,000.00 is stored and calculated as `300000` paise.
+5. **No Purchases or Escrow**: Clear disclaimer shown: *"This records a commitment to your approved plan. It does not place an order."*
+6. **Testnet Only**: Strict verification of Base Sepolia Chain ID (`84532`) before transactions.
+7. **Deployer Private Key Safety**: Deployer keys go only in git-ignored `.env` for throwaway testnet wallets.
+
+---
 
 ## Prerequisites
 
-1. Node.js version 20 or newer. Check with `node -v`.
-2. A free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey).
+- Node.js 20 or newer (`node -v`)
+- MetaMask browser extension
+- Google Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
+- A throwaway Base Sepolia test wallet
 
-## Getting Started
+---
 
-### Step 1. Create your project
+## Setup & Environment Configuration
 
-Run the following command in your terminal. Replace `my-agent` with any folder name you like.
-
-```bash
-npx agentmaxxin my-agent
-```
-
-This copies the template into a new folder, creates a `.env` file for you, and installs all packages.
-
-### Step 2. Move into the project folder
+### 1. Clone & Install Dependencies
 
 ```bash
-cd my-agent
+git clone <repo_url>
+cd my-agent_suvo
+npm install
 ```
 
-### Step 3. Add your Gemini API key
+### 2. Configure Environment Variables
 
-Open the `.env` file in the project root and paste your key after the equals sign:
+Copy `.env.example` to `.env`:
 
 ```bash
-GEMINI_API_KEY=your_key_here
+cp .env.example .env
 ```
 
-Save the file. The key stays on your machine and is never committed to git.
+Edit `.env` with your values:
 
-### Step 4. Start the app
+```env
+# Server-side Gemini API Key
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+
+# Base Sepolia RPC
+BASE_SEPOLIA_RPC=https://sepolia.base.org
+
+# Testnet Deployer Private Key (Throwaway wallet only)
+DEPLOYER_PRIVATE_KEY=0x_your_throwaway_private_key_here
+
+# Deployed ShoppingIntentRegistry contract address (updated automatically on deploy)
+NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS=0x0000000000000000000000000000000000000000
+
+# Optional Basescan Verification API Key
+BASESCAN_API_KEY=
+
+# Optional Privacy Salting (default: false)
+NEXT_PUBLIC_ENABLE_SALT=false
+```
+
+---
+
+## How to Fund a Base Sepolia Test Wallet
+
+1. Obtain your testnet wallet address from MetaMask.
+2. Switch network in MetaMask to **Base Sepolia** (Chain ID: `84532`).
+3. Get free testnet ETH from official faucets:
+   - [Chainlink Faucets (Base Sepolia)](https://faucets.chain.link/base-sepolia)
+   - [Superchain Faucet](https://console.optimism.io/faucet)
+   - [Coinbase Base Sepolia Faucet](https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet)
+4. Confirm your balance appears in MetaMask before deploying or recording commitments.
+
+---
+
+## Smart Contract Deployment
+
+### Deploy Locally (Simulation)
+```bash
+npm run deploy:local
+```
+
+### Deploy to Base Sepolia Testnet
+Ensure `DEPLOYER_PRIVATE_KEY` in `.env` has testnet ETH:
+```bash
+npm run deploy:base-sepolia
+```
+This writes the deployed address to `contracts/deployed-address.json`, which the frontend and API routes automatically detect.
+
+---
+
+## Running the Automated Test Suite
+
+We provide 4 comprehensive test suites covering all phases and edge cases:
+
+```bash
+# Run all 34 test suites (Phases 1, 2, 3, and 6)
+npm test
+
+# Run individual test suites
+npm run test:phase1     # Validation, catalog grounding, canonicalization, hashing
+npm run test:phase2     # 8 controlled Gemini tools, revision handling, calldata
+npm run test:contracts  # Hardhat Solidity tests (ShoppingIntentRegistry.sol)
+npm run test:phase6     # Application edge cases, hash mismatch detection, integration
+```
+
+### Contract Test Coverage Highlights:
+- First version recording & owner assignment
+- Invalid version numbers rejected (e.g. starting with version 2)
+- Sequential versions (`version == latestVersion + 1`)
+- Skipped versions rejected (e.g. jumping from 1 to 3)
+- Non-owner updates rejected
+- Expired timestamps rejected
+- Permanent intent cancellation
+- Post-cancellation update rejection
+- Historical versions preserved and readable
+- Zero-value inputs rejected (`bytes32(0)`)
+
+---
+
+## Running the End-to-End Demo Script
+
+Run the automated integration demo script to see the complete flow executed:
+
+```bash
+npm run demo
+```
+
+### Demo Workflow:
+1. **Initial Request**: *"I need supplies for three days of college activities, my budget is Rs 3,000"*
+2. **Planning & Grounding**: Extracted budget `300000` paise (₹3,000.00). Selected catalog-verified supplies (Notebooks, Gel Pens, Stainless Bottle, Power Bank, Energy Bars) totaling ₹2,489.00.
+3. **Canonical Hashing**: Deterministic key-ordered UTF-8 serialization hashed with `keccak256`.
+4. **On-Chain Recording**: Version 1 commitment recorded on Base Sepolia.
+5. **Read-Back Verification**: Contract query confirms `onChainHash == canonicalHash` (PASS ✅).
+6. **Budget Revision**: *"Budget is now Rs 2,000, keep the essentials"*
+7. **Version 2 Creation**: Preserves the **SAME** `intentId`, assigns `version = 2`, and generates a human-readable diff (Power Bank removed to fit under ₹2,000, First Aid Kit added).
+8. **Dual-Version Verification**: Version 2 recorded on-chain while Version 1 remains permanently preserved, unchanged, and readable on-chain!
+
+---
+
+## Starting the Web Application
 
 ```bash
 npm run dev
 ```
 
-### Step 5. Create the agent wallet
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Open [http://localhost:3000](http://localhost:3000) in your browser. The Setup panel on the left walks you through everything.
+1. **Connect MetaMask**: The wallet banner automatically detects your network. If you are not on Base Sepolia, click "Switch Network".
+2. **Enter Situation & Budget**: Use the preset buttons (e.g., College Activities ₹3,000) or type your custom shopping needs.
+3. **Review Bundle**: Inspect the catalog-verified items, quantities, and prices.
+4. **Approve & Commit**: Check the review consent checkbox and click **Record Commitment in MetaMask**.
+5. **Verify**: View real-time cryptographic verification (PASS ✅) and switch between Version 1 and Version 2 history tabs.
 
-Click **Create wallet**. The agent now has its own wallet, which it uses to sign payments for paid APIs. The wallet is saved in `.agent-wallet.json` in your project folder, so it stays the same after a restart.
+---
 
-### Step 6. Talk to your agent
+## Limitations
 
-Try one of these prompts:
-
-1. `What's the weather in Mumbai?` The agent calls the paid weather API and pays for it with its wallet.
-2. `What's in your wallet?` The agent reads its own wallet address and balance.
-3. `Roll a 20 sided dice` The agent calls a simple tool with no wallet involved.
-
-Click any tool entry above a reply to see exactly what the agent sent and received. The agent remembers the conversation, so you can ask follow up questions. Use **Clear** to start over.
-
-### Step 7. Build your own tool
-
-Open `agent/tools.ts` and add a new object to the `tools` list. For example:
-
-```ts
-{
-  name: "get_joke",
-  description: "Get a random joke.",
-  parameters: { type: "object", properties: {} },
-  run: async () => {
-    const res = await fetch("https://official-joke-api.appspot.com/random_joke");
-    return res.json();
-  },
-},
-```
-
-Save the file and refresh the page. Your new tool appears in the Tools panel. Now ask your agent to tell you a joke.
-
-## Writing Good Tools
-
-Every tool has four parts.
-
-| Field | Purpose |
-| :--- | :--- |
-| `name` | A unique identifier in snake case, such as `get_weather`. |
-| `description` | Plain English explaining what the tool does. Gemini reads this to decide when to use it, so be clear and specific. |
-| `parameters` | A JSON Schema describing the inputs. Gemini fills in these values for you. |
-| `run` | The function that does the work. Whatever it returns is sent back to Gemini. |
-
-A few guidelines:
-
-1. Return plain objects, for example `{ temperature: 28 }`, rather than strings or class instances.
-2. Keep each tool focused on one job. Several small tools work better than one large tool.
-3. If something can fail, let it throw. The agent loop catches the error and reports it back to Gemini, which can then explain the problem or try again.
-
-## How It Works
-
-### The agent loop
-
-The loop lives in `agent/agent.ts`.
-
-1. Your message and the list of tools are sent to Gemini.
-2. If Gemini replies with a tool call, the matching `run` function is executed and its result is sent back to Gemini.
-3. This repeats until Gemini replies with plain text, which becomes the final answer.
-4. The loop stops after five rounds to prevent runaway tool calls.
-
-### Paying for an API
-
-The weather tool demonstrates the x402 pattern, where an agent pays for an API one request at a time.
-
-1. The agent requests `/api/weather`.
-2. The API responds with status `402 Payment Required` along with a price, an asset, and a recipient address.
-3. The agent wallet signs a payment message for that amount.
-4. The agent repeats the request with the signed payment in an `X-PAYMENT` header.
-5. The API verifies the signature and responds with status `200 OK` and the weather data.
-
-All of this is handled by the `payAndFetch` helper in `agent/wallet.ts`. Any tool that calls a paid API can use the same helper.
-
-Payments in this template are cryptographically signed but are not submitted to a blockchain, so no real funds are ever moved.
-
-## Project Structure
-
-| Path | Description |
-| :--- | :--- |
-| `agent/tools.ts` | The tools your agent can use. This is the file you will edit most. |
-| `agent/agent.ts` | The agent loop that communicates with Gemini. |
-| `agent/wallet.ts` | The agent wallet, payment signing, and payment verification. |
-| `app/page.tsx` | The page: setup steps, tools list, and chat. |
-| `app/api/agent/route.ts` | The server endpoint that runs the agent. |
-| `app/api/wallet/route.ts` | The server endpoint that creates and reads the agent wallet. |
-| `app/api/weather/route.ts` | The mock paid weather API. |
-| `components/ui/` | Interface components from [shadcn/ui](https://ui.shadcn.com). You do not need to edit these. |
-| `.env` | Your API key and optional settings. |
-| `.agent-wallet.json` | The agent wallet, created when you click Create wallet. Never share this file. |
-
-## Configuration
-
-All settings live in the `.env` file.
-
-| Variable | Required | Description |
-| :--- | :--- | :--- |
-| `GEMINI_API_KEY` | Yes | Your Gemini API key. |
-| `GEMINI_MODEL` | No | The Gemini model to use. Defaults to `gemini-flash-latest`. |
-| `WALLET_PRIVATE_KEY` | No | Use an existing wallet instead of the Create wallet button. A private key starting with `0x`. When set, it takes priority over `.agent-wallet.json`. |
-
-Restart `npm run dev` after changing any value in `.env`.
-
-## The Agent Wallet
-
-Clicking **Create wallet** generates a new private key and saves it to `.agent-wallet.json`. The file is listed in `.gitignore`, so it is never committed.
-
-Once the wallet exists, the Setup panel shows:
-
-1. The wallet address, with a button to copy it.
-2. The current ETH balance on Base Sepolia, with a refresh button.
-3. A link to view the wallet on the Base Sepolia block explorer.
-4. A link to faucets where you can request free test ETH.
-
-To start again with a new wallet, stop the server, delete `.agent-wallet.json`, restart, and click **Create wallet** again.
-
-To use a wallet you already have, set `WALLET_PRIVATE_KEY` in `.env` instead.
-
-> **Security note:** Only ever use this wallet for testing. Never send real funds to it. Private keys in `.agent-wallet.json` and `.env` are stored as plain text.
-
-## Troubleshooting
-
-| Problem | Solution |
-| :--- | :--- |
-| The page says to add `GEMINI_API_KEY` | Add your key to `.env` and restart `npm run dev`. |
-| The agent never uses my new tool | Make the `description` more specific about when the tool should be used, then restart the server. |
-| The weather tool fails with "no wallet yet" | Click **Create wallet** in the Setup panel, then ask again. |
-| Port 3000 is already in use | Run `npm run dev -- -p 3001` and open that port instead. |
-| A model error appears in the chat | Check that your API key is valid, or set a different model in `GEMINI_MODEL`. |
-
-## Tech Stack
-
-1. [Next.js](https://nextjs.org) for the app and API routes.
-2. [shadcn/ui](https://ui.shadcn.com) and [Tailwind CSS](https://tailwindcss.com) for the interface.
-3. [Google Gen AI SDK](https://www.npmjs.com/package/@google/genai) for Gemini function calling.
-4. [viem](https://viem.sh) for wallet creation, message signing, and reading Base Sepolia.
-
-## License
-
-MIT
+1. **Not a Purchase or Order**: Recording a commitment on-chain only registers that the user reviewed and approved a specific shopping plan at a given point in time. It does **not** charge cards, execute payments, place orders, reserve inventory, or guarantee seller delivery.
+2. **No Authenticity or Inventory Guarantee**: The on-chain hash confirms that the canonical plan has not been altered; it does **not** prove seller reliability, physical product authenticity, or real-time warehouse stock.
+3. **Privacy of Guessable Plans**: Plain `keccak256` hashes of plans with few, easily guessable items could potentially be brute-forced or verified by an observer with the catalog. An optional 32-byte off-chain salt (`NEXT_PUBLIC_ENABLE_SALT=true`) can be enabled to mitigate this.
+4. **Testnet Prototype & Unaudited**: This codebase is a hackathon/demonstration prototype built for Base Sepolia testnet. The smart contracts are unaudited and must not be used on Ethereum mainnet without a professional security audit.
