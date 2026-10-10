@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, ChevronRight, LogOut, Wallet } from "lucide-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BASE_SEPOLIA_CHAIN_ID } from "@/lib/contract-config";
+import { connectMetaMaskOnTestnet, promptSwitchToBaseSepolia } from "@/lib/web3-wallet";
 
 interface WalletStatusProps {
   account: string | null;
@@ -76,18 +77,8 @@ export function WalletStatus({
 
     setConnecting(true);
     try {
-      const accounts = (await window.ethereum.request({
-        method: "eth_requestAccounts",
-      })) as string[];
-
-      const chainHex = (await window.ethereum.request({
-        method: "eth_chainId",
-      })) as string;
-
-      const currentChainId = parseInt(chainHex, 16);
-      if (accounts.length > 0) {
-        onConnect(accounts[0], currentChainId);
-      }
+      const { account: connectedAcc, chainId: connectedChain } = await connectMetaMaskOnTestnet();
+      onConnect(connectedAcc, connectedChain);
     } catch (err: any) {
       if (err.code === 4001) {
         setError("Connection request was rejected in MetaMask.");
@@ -103,32 +94,12 @@ export function WalletStatus({
     setError(null);
     if (!window.ethereum) return;
     try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x14a34" }], // 84532 in hex
-      });
-    } catch (switchError: any) {
-      // 4902 means the chain has not been added to MetaMask yet
-      if (switchError.code === 4902) {
-        try {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: "0x14a34",
-                chainName: "Base Sepolia",
-                nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-                rpcUrls: ["https://sepolia.base.org"],
-                blockExplorerUrls: ["https://sepolia.basescan.org"],
-              },
-            ],
-          });
-        } catch (addError: any) {
-          setError(addError.message || "Failed to add Base Sepolia network.");
-        }
-      } else {
-        setError(switchError.message || "Failed to switch to Base Sepolia.");
+      await promptSwitchToBaseSepolia();
+      if (account) {
+        onConnect(account, BASE_SEPOLIA_CHAIN_ID);
       }
+    } catch (switchError: any) {
+      setError(switchError.message || "Failed to switch to Base Sepolia Testnet.");
     }
   }
 

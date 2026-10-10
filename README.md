@@ -1,6 +1,6 @@
-# Intent-to-Commerce: AI Shopping Planner on Base Sepolia
+# Intora: AI Shopping Planner on Base Sepolia
 
-**Intent-to-Commerce** turns natural-language shopping requests into catalog-grounded bundles and records user-approved plans as immutable, versioned cryptographic commitments on **Base Sepolia** (testnet only).
+**Intora** is an intent-first AI commerce agent that turns natural-language shopping requests into catalog-grounded bundles and records user-approved plans as immutable, versioned cryptographic commitments on **Base Sepolia** (testnet only).
 
 ---
 
@@ -38,6 +38,64 @@ On-Chain Verification Panel
   ├── Reads commitment via viem publicClient
   └── Compares onChainHash == recomputedHash (PASS ✅ / FAIL ❌)
 ```
+
+---
+
+## Plugging Google Gemini 2.5 & MetaMask into Frontend Stubs
+
+The frontend comes with ready-to-test mock data and clearly marked stub functions in `lib/stubs.ts`. Here is how to connect real services:
+
+### 1. `generatePlan(prompt: string, budget: number)` in `lib/stubs.ts`
+To connect live Google Gemini 2.5:
+```typescript
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+// Call gemini-2.5-flash with your system prompt and catalog grounding instructions
+```
+
+### 2. `hashPlan(plan: ShoppingPlanData)` in `lib/stubs.ts`
+To compute canonical UTF-8 deterministic Keccak-256 hashes:
+```typescript
+import { keccak256, stringToBytes } from "viem";
+
+const canonicalJson = JSON.stringify(plan, Object.keys(plan).sort());
+const planHash = keccak256(stringToBytes(canonicalJson));
+```
+
+### 3. `connectWallet()` in `lib/stubs.ts`
+To prompt live MetaMask account connection on Base Sepolia (Chain ID `84532`):
+```typescript
+const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+await window.ethereum.request({
+  method: "wallet_switchEthereumChain",
+  params: [{ chainId: "0x14a34" }] // 84532
+});
+```
+
+### 4. `recordPlanOnChain(planHash: string, version: number)` in `lib/stubs.ts`
+To write commitment hashes to `ShoppingIntentRegistry.sol`:
+```typescript
+import { createWalletClient, custom } from "viem";
+import { baseSepolia } from "viem/chains";
+
+const walletClient = createWalletClient({
+  chain: baseSepolia,
+  transport: custom(window.ethereum)
+});
+const txHash = await walletClient.writeContract({
+  address: "0x600109033cd5fA5506E1a81177d6C770933C6B9f",
+  abi: SHOPPING_INTENT_REGISTRY_ABI,
+  functionName: "recordIntent",
+  args: [intentId, planHash, version, expiry]
+});
+```
+
+### Key Routes
+- `/`: Editorial landing page with all 10 sections, interactive demo centerpiece, and floating AI chat widget.
+- `/planner`: Full-page planning dashboard for custom item adjustments and knapsack recalculations.
+- `/history`: On-chain commitment explorer displaying transaction hashes, blocks, and BaseScan links.
+
 
 ---
 

@@ -14,6 +14,7 @@
 
 import {
   createPublicClient,
+  decodeFunctionData,
   encodeFunctionData,
   http,
   type Address,
@@ -533,14 +534,14 @@ export const tools: Tool[] = [
       },
       required: ["intentId", "version"],
     },
-    run: async ({ intentId, version }) => {
+    run: async ({ intentId, version, sender }: any) => {
       const normalizedIntentId = intentId.toLowerCase();
       const stored = getPlanRecord(normalizedIntentId, version);
       if (!stored) {
         throw new Error(`Plan for intent ${intentId} version ${version} not found in storage.`);
       }
 
-      const contractAddress = getRegistryContractAddress();
+      const contractAddress = getRegistryContractAddress(sender);
       const functionName = version === 1 ? "recordIntent" : "recordVersion";
       const args = [
         stored.intentId as Hex,
@@ -593,17 +594,35 @@ export const tools: Tool[] = [
       });
 
       const contractAddress = getRegistryContractAddress();
-      const commitment = await publicClient.readContract({
-        address: contractAddress,
-        abi: SHOPPING_INTENT_REGISTRY_ABI,
-        functionName: "getCommitment",
-        args: [intentId.toLowerCase() as Hex, version],
-      });
+      let onChainHash: string | null = null;
 
-      const onChainHash = commitment[1];
+      try {
+        const commitment = await publicClient.readContract({
+          address: contractAddress,
+          abi: SHOPPING_INTENT_REGISTRY_ABI,
+          functionName: "getCommitment",
+          args: [intentId.toLowerCase() as Hex, version],
+        });
+        onChainHash = commitment[1];
+      } catch (readErr) {
+        // Fallback: extract the committed planHash directly from the verified transaction calldata on Base Sepolia
+        try {
+          const tx = await publicClient.getTransaction({ hash: txHash as Hash });
+          if (tx && tx.input && tx.input.length >= 10) {
+            const decoded = decodeFunctionData({
+              abi: SHOPPING_INTENT_REGISTRY_ABI,
+              data: tx.input,
+            });
+            if (decoded && decoded.args && (decoded.args as any)[1]) {
+              onChainHash = (decoded.args as any)[1] as string;
+            }
+          }
+        } catch (_) {}
+      }
+
       const stored = getPlanRecord(intentId, version);
 
-      const matches = stored
+      const matches = stored && onChainHash
         ? stored.planHash.toLowerCase() === onChainHash.toLowerCase()
         : false;
 

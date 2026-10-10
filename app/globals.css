@@ -26,57 +26,319 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --color-blue: var(--blue);
-    --color-blue-soft: var(--blue-soft);
+    --color-indigo: var(--indigo);
+    --color-emerald: var(--emerald);
+    --color-vermilion: var(--vermilion);
+    --color-ember: var(--ember);
+    --color-gold: var(--gold);
+    --color-bone: var(--bone);
+    --color-bone-dim: var(--bone-dim);
+    --color-ink: var(--ink);
+    --color-ink-2: var(--ink-2);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-xl: calc(var(--radius) * 1.33);
+    --radius-2xl: calc(var(--radius) * 1.66);
+    --radius-3xl: calc(var(--radius) * 2.0);
 }
 
 :root {
-    /* Agentmaxxing palette */
-    --background: #0A0A0A;
-    --foreground: #F2F1EC;
-    --card: #111110;
-    --card-foreground: #F2F1EC;
-    --popover: #111110;
-    --popover-foreground: #F2F1EC;
-    --primary: #C8E850;
-    --primary-foreground: #0A0A0A;
-    --secondary: #2A2A28;
-    --secondary-foreground: #F2F1EC;
-    --muted: #1A1A19;
-    --muted-foreground: #9A9A93;
-    --accent: #2A2A28;
-    --accent-foreground: #F2F1EC;
-    --destructive: #FF6B5A;
-    --border: rgba(242, 241, 236, 0.13);
-    --input: rgba(242, 241, 236, 0.24);
-    --ring: #C8E850;
-    --blue: #2030D8;
-    --blue-soft: #8C96FF;
-    --radius: 0rem;
+    /* ThreeUI Kage Japanese Temple Aesthetic Palette */
+    --background: #05070a;          /* page black */
+    --foreground: #dfe7e0;          /* bone white */
+    --card: #0a0e12;                /* ink-2 raised black */
+    --card-foreground: #dfe7e0;
+    --popover: #0a0e12;
+    --popover-foreground: #dfe7e0;
+    --primary: #e0231c;             /* Kage vermilion */
+    --primary-foreground: #ffffff;
+    --secondary: #11171d;           /* deep charcoal */
+    --secondary-foreground: #aab4ad;/* bone-dim */
+    --muted: #0a0e12;
+    --muted-foreground: #78837c;    /* muted sage */
+    --accent: #161c22;
+    --accent-foreground: #dfe7e0;
+    --destructive: #e0231c;
+    --border: rgba(223, 231, 224, 0.13);     /* --line */
+    --input: rgba(223, 231, 224, 0.16);
+    --ring: #e0231c;
+    --indigo: #e0231c;
+    --emerald: #e0231c;
+    --vermilion: #e0231c;
+    --ember: #ff5a3c;
+    --gold: #c9a24a;
+    --bone: #dfe7e0;
+    --bone-dim: #aab4ad;
+    --ink: #05070a;
+    --ink-2: #0a0e12;
+    --radius: 0.75rem;
 }
-
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+  }
 }
-/* Faint 6 column grid behind the page, like agentmaxxin.xyz */
+
+/* Kage Atmospheric Deep Kyoto Temple Lighting */
 body {
-  background-image: linear-gradient(to right, rgba(242, 241, 236, 0.045) 1px, transparent 1px);
-  background-size: calc(100% / 6) 100%;
+  background-image: 
+    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(224, 35, 28, 0.08), transparent 75%),
+    radial-gradient(125% 95% at 50% 42%, transparent 40%, rgba(2, 4, 6, 0.55) 100%);
+  background-attachment: fixed;
 }
-::selection { background: var(--primary); color: var(--primary-foreground); }
+
+::selection {
+  background: var(--vermilion);
+  color: #ffffff;
+}
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--bone-dim);
+  text-shadow: 0 1px 16px rgba(3,6,8,.9);
+}
+
+.display {
+  text-transform: uppercase;
+  line-height: 1.055;
+  letter-spacing: -0.012em;
+  font-weight: 400;
+  text-shadow: 0 2px 34px rgba(3,6,8,.72);
+}
+
+.jp {
+  font-family: 'NotoJP', 'Onest', sans-serif;
+  font-weight: 400;
+}
+
+.kage-glass {
+  background: rgba(10, 14, 18, 0.82);
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  border: 1px solid var(--border);
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Glassmorphism & Cybernetic Accents */
+.glass-panel {
+  background: rgba(17, 20, 29, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-interactive {
+  background: rgba(17, 20, 29, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card-interactive:hover {
+  background: rgba(23, 27, 40, 0.85);
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.15);
+  transform: translateY(-2px);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.35);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.35);
+}
+
+.glow-violet {
+  box-shadow: 0 0 25px -5px rgba(139, 92, 246, 0.35);
+}
+
+/* Animated Shimmer for Gradients */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 4s infinite linear;
+}
+
+/* Radar pulse animation for on-chain block mining */
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.animate-radar {
+  animation: radar-pulse 2.5s infinite ease-in-out;
+}
+
+/* Subtle cryptographic avalanche flash */
+@keyframes avalanche-flash {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+    filter: brightness(1.3);
+  }
+}
+
+.animate-avalanche {
+  animation: avalanche-flash 0.8s ease-in-out;
+}
+
+/* ThreeUI Frame & Viewport Sizing */
+.shader-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: #05070a;
+}
+
+.shader-frame .landing-page-frame,
+.landing-page-frame {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  border: 0 !important;
+  background: #05070a !important;
+}
+
+.shader-frame .landing-page-frame iframe,
+.landing-page-frame iframe {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  background: #05070a !important;
+}
+
+/* ==========================================================================
+   Editorial Modern SaaS Design Tokens & Utilities
+   Palette: Warm Beige (#EEE9E4, #F7F4F1), Ink (#111111), Muted (#8B857F)
+   Accents: Coral/Peach (#F4A28C), Lavender (#E9D8FF), Deep Green (#1F4D45)
+   ========================================================================== */
+
+.font-serif-headline {
+  font-family: 'Instrument Serif', 'Newsreader', Georgia, serif;
+}
+
+.font-editorial-sans {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.bg-canvas-beige {
+  background-color: #EEE9E4;
+}
+
+.bg-canvas-light {
+  background-color: #F7F4F1;
+}
+
+.text-editorial-ink {
+  color: #111111;
+}
+
+.text-editorial-muted {
+  color: #8B857F;
+}
+
+.border-editorial-warm {
+  border-color: #E4DED8;
+}
+
+.accent-coral {
+  color: #F4A28C;
+}
+
+.bg-accent-coral {
+  background-color: #F4A28C;
+}
+
+.accent-green {
+  color: #1F4D45;
+}
+
+.bg-accent-green {
+  background-color: #1F4D45;
+}
+
+.glow-peach {
+  box-shadow: 0 0 80px rgba(244, 162, 140, 0.25);
+}
+
+.glow-lavender {
+  box-shadow: 0 0 80px rgba(233, 216, 255, 0.35);
+}
+
+.shadow-editorial-card {
+  box-shadow: 0 12px 32px -4px rgba(27, 24, 21, 0.05), 0 4px 12px -2px rgba(27, 24, 21, 0.03);
+}
+
+.shadow-editorial-elevated {
+  box-shadow: 0 24px 48px -12px rgba(27, 24, 21, 0.10), 0 8px 24px -4px rgba(27, 24, 21, 0.04);
+}
+
+.pattern-dots {
+  background-image: radial-gradient(#e4ded8 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+.pattern-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(228, 222, 216, 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(228, 222, 216, 0.45) 1px, transparent 1px);
+}
+
+

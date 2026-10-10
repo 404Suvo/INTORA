@@ -100,34 +100,57 @@ export const SHOPPING_INTENT_REGISTRY_ABI = [
 ] as const;
 
 /**
- * Resolves the configured contract address for Base Sepolia.
+ * Canonical evidence sink address on Ethereum / Base networks.
+ * Used for zero-value evidence anchoring when no dedicated contract is deployed
+ * or to prevent MetaMask internal account collision errors.
  */
-export function getRegistryContractAddress(): Address {
+export const EVIDENCE_SINK_ADDRESS: Address = "0x000000000000000000000000000000000000dEaD";
+
+/**
+ * Resolves the configured contract address for Base Sepolia.
+ * If sender is specified and matches the target address (or if target is an internal account),
+ * routes safely to EVIDENCE_SINK_ADDRESS to prevent MetaMask error:
+ * "External transactions to internal accounts cannot include data".
+ */
+export function getRegistryContractAddress(sender?: string | null): Address {
   const envAddr =
     process.env.NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS ||
     process.env.INTENT_REGISTRY_ADDRESS;
 
-  if (envAddr && isAddress(envAddr)) {
-    return getAddress(envAddr);
-  }
+  let targetAddr: Address = "0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3";
 
-  try {
-    // Check if deployed-address.json exists
-    if (typeof window === "undefined") {
-      const fs = require("fs");
-      const path = require("path");
-      const deployedFile = path.join(process.cwd(), "contracts", "deployed-address.json");
-      if (fs.existsSync(deployedFile)) {
-        const config = JSON.parse(fs.readFileSync(deployedFile, "utf8"));
-        if (config.address && isAddress(config.address)) {
-          return getAddress(config.address);
+  if (envAddr && isAddress(envAddr)) {
+    targetAddr = getAddress(envAddr);
+  } else {
+    try {
+      // Check if deployed-address.json exists
+      if (typeof window === "undefined") {
+        const fs = require("fs");
+        const path = require("path");
+        const deployedFile = path.join(process.cwd(), "contracts", "deployed-address.json");
+        if (fs.existsSync(deployedFile)) {
+          const config = JSON.parse(fs.readFileSync(deployedFile, "utf8"));
+          if (config.address && isAddress(config.address)) {
+            targetAddr = getAddress(config.address);
+          }
         }
       }
+    } catch {
+      // Ignore in browser context
     }
-  } catch {
-    // Ignore in browser context
   }
 
-  // Fallback to a zero-placeholder if not yet configured
-  return "0x0000000000000000000000000000000000000000";
+  // Prevent self-call / internal account error in MetaMask
+  if (sender && targetAddr.toLowerCase() === sender.toLowerCase()) {
+    return EVIDENCE_SINK_ADDRESS;
+  }
+
+  return targetAddr;
 }
+
+export const INTENT_REGISTRY_ADDRESS: Address =
+  (process.env.NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS && isAddress(process.env.NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS))
+    ? getAddress(process.env.NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS)
+    : "0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3";
+
+

@@ -10,8 +10,16 @@
 import { GoogleGenAI, type Content, type Part } from "@google/genai";
 import { tools } from "./tools";
 
-export const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+export const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
 const MAX_STEPS = 6;
+
+const CANDIDATE_MODELS = [
+  "gemini-flash-latest",
+  "gemini-3.5-flash-lite",
+  "gemini-flash-lite-latest",
+  "gemini-3.5-flash",
+  "gemini-3.6-flash",
+];
 
 const SYSTEM_PROMPT = `
 You are Intent-to-Commerce, an expert AI shopping planner.
@@ -45,23 +53,53 @@ export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string })
   }));
   const steps: Step[] = [];
 
+  const configuredModel = process.env.GEMINI_MODEL || MODEL;
+  const modelsToTry = Array.from(new Set([configuredModel, ...CANDIDATE_MODELS]));
+
   for (let i = 0; i < MAX_STEPS; i++) {
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        tools: [
-          {
-            functionDeclarations: tools.map((t) => ({
-              name: t.name,
-              description: t.description,
-              parametersJsonSchema: t.parameters,
-            })),
+    let response;
+    let lastError: unknown;
+
+    for (const currentModel of modelsToTry) {
+      try {
+        response = await ai.models.generateContent({
+          model: currentModel,
+          contents,
+          config: {
+            systemInstruction: SYSTEM_PROMPT,
+            tools: [
+              {
+                functionDeclarations: tools.map((t) => ({
+                  name: t.name,
+                  description: t.description,
+                  parametersJsonSchema: t.parameters,
+                })),
+              },
+            ],
           },
-        ],
-      },
-    });
+        });
+        break;
+      } catch (err: any) {
+        lastError = err;
+        const msg = String(err?.message || "");
+        const isQuotaOrNotFound =
+          msg.includes("429") ||
+          msg.includes("RESOURCE_EXHAUSTED") ||
+          msg.includes("404") ||
+          msg.includes("NOT_FOUND") ||
+          msg.includes("503");
+
+        if (isQuotaOrNotFound && currentModel !== modelsToTry[modelsToTry.length - 1]) {
+          console.warn(`[Agent] Gemini model '${currentModel}' unavailable/exhausted. Falling back to alternative model...`);
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error("Failed to receive response from Gemini API.");
+    }
 
     const calls = response.functionCalls ?? [];
     if (calls.length === 0) {

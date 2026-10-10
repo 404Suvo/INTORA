@@ -14,7 +14,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatInr } from "@/lib/catalog";
-import { BASE_SEPOLIA_CHAIN_ID } from "@/lib/contract-config";
+import { BASE_SEPOLIA_CHAIN_ID, EVIDENCE_SINK_ADDRESS } from "@/lib/contract-config";
+import { connectMetaMaskOnTestnet, promptSwitchToBaseSepolia } from "@/lib/web3-wallet";
 import { computePlanHash } from "@/lib/plan-hash";
 import { ShoppingPlan } from "@/lib/types";
 
@@ -61,14 +62,45 @@ export function IntentApproval({
       return;
     }
 
-    if (!account) {
-      setErrorMessage("Please connect your MetaMask wallet first.");
-      return;
+    let activeAccount = account;
+    let activeChainId = chainId;
+
+    if (!activeAccount) {
+      if (typeof window !== "undefined" && window.ethereum) {
+        try {
+          setTxState("awaiting_approval");
+          const res = await connectMetaMaskOnTestnet();
+          activeAccount = res.account;
+          activeChainId = res.chainId;
+        } catch (connErr: any) {
+          setTxState("idle");
+          if (connErr.code === 4001) {
+            setErrorMessage("Connection request was canceled in MetaMask.");
+          } else {
+            setErrorMessage(connErr.message || "Failed to connect MetaMask.");
+          }
+          return;
+        }
+      } else {
+        setErrorMessage("MetaMask is not detected. Please install MetaMask to record on-chain commitments.");
+        return;
+      }
     }
 
-    if (!isBaseSepolia) {
-      setErrorMessage("Please switch MetaMask to Base Sepolia (Chain ID 84532).");
-      return;
+    if (activeChainId !== BASE_SEPOLIA_CHAIN_ID) {
+      try {
+        setTxState("awaiting_approval");
+        await promptSwitchToBaseSepolia();
+        activeChainId = BASE_SEPOLIA_CHAIN_ID;
+      } catch (switchErr: any) {
+        setTxState("idle");
+        if (switchErr.code === 4001) {
+          setErrorMessage("Network switch was canceled in MetaMask. Please switch to Base Sepolia Testnet.");
+        } else {
+          setErrorMessage(switchErr.message || "Failed to switch to Base Sepolia Testnet.");
+        }
+        return;
+      }
     }
 
     if (isExpired) {
@@ -87,6 +119,7 @@ export function IntentApproval({
           action: "prepare",
           intentId: plan.intentId,
           version: plan.version,
+          sender: activeAccount,
         }),
       });
 
@@ -96,17 +129,40 @@ export function IntentApproval({
       }
 
       // 3. User approves in MetaMask (Hard Rule 2: Agent never signs or submits)
+      let targetAddress = prepData.to;
+      if (activeAccount && targetAddress.toLowerCase() === activeAccount.toLowerCase()) {
+        targetAddress = EVIDENCE_SINK_ADDRESS;
+      }
+
       const transactionParameters = {
-        to: prepData.to,
-        from: account,
+        to: targetAddress,
+        from: activeAccount,
         data: prepData.calldata,
         chainId: "0x14a34", // 84532
       };
 
-      const hash = (await window.ethereum.request({
-        method: "eth_sendTransaction",
-        params: [transactionParameters],
-      })) as `0x${string}`;
+      let hash: `0x${string}`;
+      try {
+        hash = (await window.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [transactionParameters],
+        })) as `0x${string}`;
+      } catch (txErr: any) {
+        const msg = (txErr.message || "").toLowerCase();
+        // Handle MetaMask restriction: "External transactions to internal accounts cannot include data"
+        if (
+          msg.includes("internal account") ||
+          msg.includes("cannot include data") ||
+          msg.includes("to internal accounts")
+        ) {
+          hash = (await window.ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{ ...transactionParameters, to: EVIDENCE_SINK_ADDRESS }],
+          })) as `0x${string}`;
+        } else {
+          throw txErr;
+        }
+      }
 
       setTxHash(hash);
       setTxState("pending");
@@ -187,14 +243,16 @@ export function IntentApproval({
         </div>
       </div>
 
-      {/* Mandatory Disclaimer (Hard Rule 5) */}
+      {/* Mandatory Disclaimer (Non-Negotiable Rule 7) */}
       <div className="flex items-start gap-2 rounded-md bg-amber-950/20 border border-amber-500/30 p-3 text-xs text-amber-300">
         <ShieldAlert className="size-4 shrink-0 text-amber-400 mt-0.5" />
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1">
           <span className="font-semibold text-amber-200">Legal & Operational Disclaimer</span>
-          <p className="text-amber-200/80">
-            This records an immutable cryptographic commitment to your approved plan on Base Sepolia.
-            It does not place an order, charge funds, or guarantee real-time inventory or seller delivery.
+          <p className="text-amber-100 font-medium">
+            This records a commitment to your approved plan. It does not place an order.
+          </p>
+          <p className="text-amber-200/70 text-[11px]">
+            No purchases, payments, or escrow. This cryptographic commitment does not prove product authenticity, inventory, seller reliability, payment, or delivery.
           </p>
         </div>
       </div>

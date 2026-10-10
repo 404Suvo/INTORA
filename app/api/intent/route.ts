@@ -22,12 +22,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { action, intentId, version, txHash } = body;
+  const { action, intentId, version, txHash, sender } = body;
 
   if (action === "prepare") {
     const prepareTool = tools.find((t) => t.name === "prepare_transaction");
     if (!prepareTool) return NextResponse.json({ error: "Tool not found" }, { status: 500 });
-    const result = await prepareTool.run({ intentId, version }, { baseUrl: new URL(req.url).origin });
+    const result = await prepareTool.run({ intentId, version, sender }, { baseUrl: new URL(req.url).origin });
     return NextResponse.json(result);
   }
 
