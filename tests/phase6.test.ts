@@ -170,7 +170,7 @@ describe("Phase 6: End-to-End Application & Integration Verification", async () 
     ]);
 
     // Read back and verify Version 1 on-chain
-    const onChainV1 = await registry.read.getCommitment([sharedIntentId, 1]);
+    const onChainV1: any = await registry.read.getCommitment([sharedIntentId, 1]);
     assert.strictEqual(onChainV1[0].toLowerCase(), ownerClient.account.address.toLowerCase());
     assert.strictEqual(onChainV1[1], v1Result.planHash);
     assert.strictEqual(onChainV1[2], 1);
@@ -216,13 +216,13 @@ describe("Phase 6: End-to-End Application & Integration Verification", async () 
     const latestVersion = await registry.read.getLatestVersion([sharedIntentId]);
     assert.strictEqual(latestVersion, 2);
 
-    const onChainV2 = await registry.read.getCommitment([sharedIntentId, 2]);
+    const onChainV2: any = await registry.read.getCommitment([sharedIntentId, 2]);
     assert.strictEqual(onChainV2[1], v2Result.planHash);
     assert.strictEqual(onChainV2[2], 2);
     assert.strictEqual(verifyPlanHash(v2Result.canonicalString, onChainV2[1]), true);
 
     // CRITICAL: Verify Version 1 is still readable, valid, and unchanged!
-    const historicalV1 = await registry.read.getCommitment([sharedIntentId, 1]);
+    const historicalV1: any = await registry.read.getCommitment([sharedIntentId, 1]);
     assert.strictEqual(historicalV1[1], v1Result.planHash);
     assert.strictEqual(historicalV1[2], 1);
     assert.strictEqual(verifyPlanHash(v1Result.canonicalString, historicalV1[1]), true);

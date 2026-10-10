@@ -108,7 +108,7 @@ async function runDemo() {
   console.log("\n--------------------------------------------------------------------------------");
   console.log("STEP 4: ON-CHAIN READ-BACK & VERIFICATION");
   console.log("--------------------------------------------------------------------------------");
-  const commitmentV1 = await registry.read.getCommitment([sharedIntentId, 1]);
+  const commitmentV1: any = await registry.read.getCommitment([sharedIntentId, 1]);
   console.log(`- Stored Plan Hash:   ${prepV1.planHash}`);
   console.log(`- On-Chain Plan Hash: ${commitmentV1[1]}`);
   const matchV1 = verifyPlanHash(prepV1.canonicalString, commitmentV1[1]);
@@ -175,8 +175,8 @@ async function runDemo() {
   console.log("\n--------------------------------------------------------------------------------");
   console.log("STEP 7: DUAL-VERSION VERIFICATION (VERSION 1 REMAINS PRESERVED)");
   console.log("--------------------------------------------------------------------------------");
-  const onChainV2 = await registry.read.getCommitment([sharedIntentId, 2]);
-  const onChainV1Again = await registry.read.getCommitment([sharedIntentId, 1]);
+  const onChainV2: any = await registry.read.getCommitment([sharedIntentId, 2]);
+  const onChainV1Again: any = await registry.read.getCommitment([sharedIntentId, 1]);
   const latestOnChainVer = await registry.read.getLatestVersion([sharedIntentId]);
 
   console.log(`- Latest Active On-Chain Version: ${latestOnChainVer}`);

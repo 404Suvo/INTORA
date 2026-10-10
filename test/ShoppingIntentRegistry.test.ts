@@ -38,7 +38,7 @@ describe("Phase 3: ShoppingIntentRegistry Contract", async () => {
     const isValid = await registry.read.isIntentValid([dummyIntentId]);
     assert.strictEqual(isValid, true);
 
-    const commitment = await registry.read.getCommitment([dummyIntentId, 1]);
+    const commitment: any = await registry.read.getCommitment([dummyIntentId, 1]);
     assert.strictEqual(commitment[0].toLowerCase(), ownerClient.account.address.toLowerCase());
     assert.strictEqual(commitment[1], dummyPlanHash1);
     assert.strictEqual(commitment[2], 1);
@@ -80,12 +80,12 @@ describe("Phase 3: ShoppingIntentRegistry Contract", async () => {
     assert.strictEqual(latest, 2);
 
     // Verify version 1 is intact
-    const v1Commitment = await registry.read.getCommitment([dummyIntentId, 1]);
+    const v1Commitment: any = await registry.read.getCommitment([dummyIntentId, 1]);
     assert.strictEqual(v1Commitment[1], dummyPlanHash1);
     assert.strictEqual(v1Commitment[2], 1);
 
     // Verify version 2 is recorded
-    const v2Commitment = await registry.read.getCommitment([dummyIntentId, 2]);
+    const v2Commitment: any = await registry.read.getCommitment([dummyIntentId, 2]);
     assert.strictEqual(v2Commitment[1], dummyPlanHash2);
     assert.strictEqual(v2Commitment[2], 2);
     assert.strictEqual(v2Commitment[3], expiryV2);
