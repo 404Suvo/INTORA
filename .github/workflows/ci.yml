@@ -1,0 +1,36 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      BASE_SEPOLIA_RPC: https://sepolia.base.org
+      NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS: 0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify Next.js Build
+        run: npm run build
+
+      - name: Run Test Suite
+        run: npm test
