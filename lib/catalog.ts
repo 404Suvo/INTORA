@@ -159,22 +159,40 @@ export const PRODUCT_CATALOG: readonly ProductCatalogItem[] = [
   },
 ];
 
+// Fast O(1) in-memory lookup index
+const CATALOG_BY_ID = new Map<string, ProductCatalogItem>(
+  PRODUCT_CATALOG.map((p) => [p.id, p])
+);
+
 export function getProductById(id: string): ProductCatalogItem | undefined {
-  return PRODUCT_CATALOG.find((p) => p.id === id);
+  return CATALOG_BY_ID.get(id);
 }
 
+/**
+ * Searches the catalog with category filtering, stock prioritization, and multi-token keyword matching.
+ */
 export function searchCatalog(query: string, category?: string): ProductCatalogItem[] {
   const q = query.toLowerCase().trim();
+  const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+
   return PRODUCT_CATALOG.filter((item) => {
     if (category && item.category !== category) return false;
-    if (!q) return true;
-    return (
-      item.name.toLowerCase().includes(q) ||
-      item.description.toLowerCase().includes(q) ||
-      item.id.toLowerCase().includes(q) ||
-      item.category.toLowerCase().includes(q)
-    );
+    if (tokens.length === 0) return true;
+
+    const searchableText = `${item.name} ${item.description} ${item.id} ${item.category}`.toLowerCase();
+    // Matches if all query tokens appear in the searchable text
+    return tokens.every((token) => searchableText.includes(token));
   });
+}
+
+/** Returns all active in-stock products */
+export function getInStockProducts(): ProductCatalogItem[] {
+  return PRODUCT_CATALOG.filter((item) => item.inStock && item.availableStock > 0);
+}
+
+/** Returns unique available categories */
+export function getCatalogCategories(): string[] {
+  return Array.from(new Set(PRODUCT_CATALOG.map((p) => p.category)));
 }
 
 /** Format minor units (paise) to human-readable INR string */
