@@ -90,7 +90,8 @@ export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string })
           msg.includes("503");
 
         if (isQuotaOrNotFound && currentModel !== modelsToTry[modelsToTry.length - 1]) {
-          console.warn(`[Agent] Gemini model '${currentModel}' unavailable/exhausted. Falling back to alternative model...`);
+          console.warn(`[Agent] Gemini model '${currentModel}' unavailable/exhausted. Backing off 350ms before fallback...`);
+          await new Promise((res) => setTimeout(res, 350));
           continue;
         }
         throw err;
