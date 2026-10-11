@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./public/intora-logo.png" alt="Intora Logo" width="130" style="border-radius: 20px;" />
+  <img src="https://raw.githubusercontent.com/404Suvo/INTORA/main/public/intora-logo.png" alt="Intora Logo" width="140" style="border-radius: 24px;" />
 </p>
 
 <h1 align="center">INTORA</h1>
