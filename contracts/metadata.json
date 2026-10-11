@@ -1,0 +1,41 @@
+{
+  "contractName": "ShoppingIntentRegistry",
+  "version": "1.0.0",
+  "network": {
+    "name": "Base Sepolia Testnet",
+    "chainId": 84532,
+    "rpcUrl": "https://sepolia.base.org",
+    "currency": "ETH",
+    "explorerUrl": "https://sepolia.basescan.org"
+  },
+  "deployment": {
+    "address": "0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3",
+    "verified": true,
+    "explorerLink": "https://sepolia.basescan.org/address/0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3"
+  },
+  "compiler": {
+    "solc": "^0.8.20",
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    }
+  },
+  "events": [
+    {
+      "name": "IntentRecorded",
+      "signature": "IntentRecorded(bytes32,address,bytes32,uint32,uint64)",
+      "topic0": "0x8fae8fc7bf06886e34ea7cefd71a0678dcf48f8a2a7a9775f0f353683a453765"
+    },
+    {
+      "name": "VersionRecorded",
+      "signature": "VersionRecorded(bytes32,address,bytes32,uint32,uint64)",
+      "topic0": "0x40df68a735e581295b9c03038676f497dc0a70198f26048ec59a4bb6d0c2ee55"
+    },
+    {
+      "name": "IntentCancelled",
+      "signature": "IntentCancelled(bytes32,address)",
+      "topic0": "0x78ab136e0534c000ff3cfef5a712f2c8d20364ea07525e98f795db2b53582151"
+    }
+  ],
+  "disclaimer": "This contract stores cryptographic commitments (keccak256 hashes) to user-approved shopping plans. It does not process payments or escrow funds."
+}
