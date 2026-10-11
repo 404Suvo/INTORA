@@ -115,3 +115,27 @@ export interface ProductCatalogItem {
   availableStock: number;
   unit: string;
 }
+
+export const SCHEMA_VERSION = "1.0.0" as const;
+
+/**
+ * Type-guard to test if an unknown value satisfies the 32-byte hex format.
+ */
+export function isHex32(val: unknown): val is `0x${string}` {
+  return typeof val === "string" && /^0x[0-9a-fA-F]{64}$/.test(val);
+}
+
+/**
+ * Validates that an amount is a non-negative integer minor unit (e.g. paise).
+ */
+export function isValidMinorAmount(val: unknown): val is number {
+  return typeof val === "number" && Number.isInteger(val) && val >= 0;
+}
+
+/**
+ * Type-guard verifying an item against the ShoppingPlanItem schema.
+ */
+export function isShoppingPlanItem(val: unknown): val is ShoppingPlanItem {
+  return ShoppingPlanItemSchema.safeParse(val).success;
+}
+
