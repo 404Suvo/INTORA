@@ -15,7 +15,7 @@
     "smoke": "node ./node_modules/tsx/dist/cli.mjs scripts/smoke.ts",
     "demo": "node ./node_modules/tsx/dist/cli.mjs scripts/demo.ts",
     "deploy:local": "node ./node_modules/tsx/dist/cli.mjs scripts/deploy.ts",
-    "deploy:base-sepolia": "npx hardhat run scripts/deploy.ts --network baseSepolia"
+    "deploy:base-sepolia": "npx hardhat run scripts/deploy.ts --network baseSepolia --no-compile"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

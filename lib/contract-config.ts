@@ -117,7 +117,7 @@ export function getRegistryContractAddress(sender?: string | null): Address {
     process.env.NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS ||
     process.env.INTENT_REGISTRY_ADDRESS;
 
-  let targetAddr: Address = "0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3";
+  let targetAddr: Address = "0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f";
 
   if (envAddr && isAddress(envAddr)) {
     targetAddr = getAddress(envAddr);
@@ -151,6 +151,6 @@ export function getRegistryContractAddress(sender?: string | null): Address {
 export const INTENT_REGISTRY_ADDRESS: Address =
   (process.env.NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS && isAddress(process.env.NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS))
     ? getAddress(process.env.NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS)
-    : "0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3";
+    : "0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f";
 
 

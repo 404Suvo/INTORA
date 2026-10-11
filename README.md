@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://intora-gcmb.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-intora--gcmb.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
-  <a href="https://sepolia.basescan.org/address/0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3"><img src="https://img.shields.io/badge/Network-Base%20Sepolia%20(84532)-0052FF?style=for-the-badge&logo=coinbase&logoColor=white" alt="Base Sepolia" /></a>
+  <a href="https://intora-wgyv.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-intora--wgyv.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
+  <a href="https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f"><img src="https://img.shields.io/badge/Network-Base%20Sepolia%20(84532)-0052FF?style=for-the-badge&logo=coinbase&logoColor=white" alt="Base Sepolia" /></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.4.0-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></a>
   <a href="https://aistudio.google.com/"><img src="https://img.shields.io/badge/AI%20Engine-Gemini%202.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" /></a>
@@ -24,8 +24,8 @@
 
 If the user revises their criteria (e.g., *"Budget is now Rs 2,000, keep essentials"*), Intora generates a sequential **Version 2** linked to the **identical intent ID**, preserving the entire historical record on-chain permanently for cryptographic auditability.
 
-* **Live Web App:** [https://intora-gcmb.vercel.app/](https://intora-gcmb.vercel.app/)
-* **Smart Contract on Base Sepolia:** [`0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3`](https://sepolia.basescan.org/address/0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3)
+* **Live Web App:** [https://intora-wgyv.vercel.app/](https://intora-wgyv.vercel.app/)
+* **Smart Contract on Base Sepolia:** [`0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f`](https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f)
 * **GitHub Repository:** [https://github.com/404Suvo/INTORA](https://github.com/404Suvo/INTORA)
 
 ---
@@ -69,6 +69,18 @@ Autonomous agents given unrestricted private key custody can drain funds, succum
 | **Icons** | [Lucide React](https://lucide.dev/) | `1.48.0` | Accessible SVG icon suite |
 | **Node.js** | [Node.js](https://nodejs.org/) | `>=20.x` | Required server-side runtime environment |
 | **Hosting** | [Vercel](https://vercel.com/) | Live | Edge network deployment with SSL |
+
+### 📜 Deployed Smart Contract
+
+| Parameter | Details |
+| :--- | :--- |
+| **Contract Name** | `ShoppingIntentRegistry` |
+| **Contract Address** | [`0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f`](https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f) |
+| **Network** | Base Sepolia Testnet (Ethereum L2) |
+| **Chain ID** | `84532` |
+| **Deployer Wallet** | [`0x1ec6f66fe81a2f01ee95f1d58fcea2522b9ec9d3`](https://sepolia.basescan.org/address/0x1ec6f66fe81a2f01ee95f1d58fcea2522b9ec9d3) |
+| **Solidity Compiler** | `^0.8.20` (Optimizer enabled, 200 runs) |
+| **Explorer Link** | [Basescan Explorer](https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f) |
 
 ---
 
@@ -177,7 +189,7 @@ GEMINI_MODEL=gemini-2.5-flash
 
 # Base Sepolia Testnet
 BASE_SEPOLIA_RPC=https://sepolia.base.org
-NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS=0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3
+NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS=0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f
 
 # Optional Testnet Deployer Key (Throwaway testnet wallet only)
 DEPLOYER_PRIVATE_KEY=0x_throwaway_testnet_private_key_here

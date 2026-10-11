@@ -9,9 +9,9 @@
     "explorerUrl": "https://sepolia.basescan.org"
   },
   "deployment": {
-    "address": "0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3",
-    "verified": true,
-    "explorerLink": "https://sepolia.basescan.org/address/0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3"
+    "address": "0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f",
+    "verified": false,
+    "explorerLink": "https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f"
   },
   "compiler": {
     "solc": "^0.8.20",

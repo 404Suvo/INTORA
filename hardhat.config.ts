@@ -5,8 +5,9 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const accounts: string[] = [];
-if (process.env.DEPLOYER_PRIVATE_KEY && process.env.DEPLOYER_PRIVATE_KEY.startsWith("0x")) {
-  accounts.push(process.env.DEPLOYER_PRIVATE_KEY);
+if (process.env.DEPLOYER_PRIVATE_KEY && process.env.DEPLOYER_PRIVATE_KEY.trim().length > 0) {
+  const trimmed = process.env.DEPLOYER_PRIVATE_KEY.trim();
+  accounts.push(trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`);
 }
 
 export default defineConfig({
