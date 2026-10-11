@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://intora-wgyv.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-intora--wgyv.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
+  <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4"><img src="https://img.shields.io/badge/Demo%20Video-Watch%20Walkthrough-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Demo Video" /></a>
   <a href="https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f"><img src="https://img.shields.io/badge/Network-Base%20Sepolia%20(84532)-0052FF?style=for-the-badge&logo=coinbase&logoColor=white" alt="Base Sepolia" /></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.4.0-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></a>
   <a href="https://aistudio.google.com/"><img src="https://img.shields.io/badge/AI%20Engine-Gemini%202.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini" /></a>
@@ -25,8 +26,23 @@
 If the user revises their criteria (e.g., *"Budget is now Rs 2,000, keep essentials"*), Intora generates a sequential **Version 2** linked to the **identical intent ID**, preserving the entire historical record on-chain permanently for cryptographic auditability.
 
 * **Live Web App:** [https://intora-wgyv.vercel.app/](https://intora-wgyv.vercel.app/)
+* **Demo Video Walkthrough:** [Watch Video (Cloudinary MP4)](https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4)
 * **Smart Contract on Base Sepolia:** [`0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f`](https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f)
 * **GitHub Repository:** [https://github.com/404Suvo/INTORA](https://github.com/404Suvo/INTORA)
+
+---
+
+## 🎥 Demo Video Walkthrough
+
+Watch the end-to-end demonstration of Intora — from natural-language shopping situation and budget optimization with Gemini, to MetaMask plan approval, sequential Version 2 revisions, and on-chain verification on Base Sepolia:
+
+<p align="center">
+  <video src="https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4" controls width="100%" style="max-width: 800px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+    Your browser does not support the video tag. <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4">Click here to watch the demo video directly</a>.
+  </video>
+</p>
+
+> 🔗 **Direct Video Link:** [https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4](https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4)
 
 ---
 
