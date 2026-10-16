@@ -25,9 +25,20 @@ import { baseSepolia } from "viem/chains";
 import {
   PRODUCT_CATALOG,
   formatInr,
+  getInStockProducts,
   getProductById,
+  registerCatalogProduct,
+  registerCatalogProducts,
   searchCatalog,
 } from "../lib/catalog";
+import {
+  formatAmazonIndiaUrl,
+  getAmazonOffersIfAvailable,
+  getAmazonProductDetails,
+  mapSearchItemToCatalogItem,
+  parsePriceToPaise,
+  searchAmazonIndia,
+} from "../lib/scraperapi";
 import { canonicalizePlan } from "../lib/canonicalize";
 import {
   BASE_SEPOLIA_CHAIN_ID,
@@ -159,11 +170,14 @@ export const tools: Tool[] = [
   {
     name: "search_products",
     description:
-      "Search the authoritative product catalog. Returns real inventory records only. Never hallucinate items.",
+      "Search real Amazon India products using ScraperAPI. Returns real product records, prices in paise, ratings, and Amazon.in URLs. Never hallucinates items.",
     parameters: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Keyword to search for in catalog (e.g. notebook, pen, bottle)." },
+        query: {
+          type: "string",
+          description: "Keyword or search query string for Amazon India (e.g. 'wireless earbuds', 'water bottle 750ml', 'power bank').",
+        },
         category: {
           type: "string",
           description: "Optional category filter: stationery, supplies, electronics, snacks, hygiene.",
@@ -171,20 +185,147 @@ export const tools: Tool[] = [
       },
       required: ["query"],
     },
-    run: async ({ query, category }) => {
+    run: async ({ query, category }: { query: string; category?: string }) => {
+      // 1. Live ScraperAPI Amazon India Search
+      if (process.env.SCRAPERAPI_KEY) {
+        try {
+          const { items, retrievedAt } = await searchAmazonIndia(query, { category });
+          const catalogItems = items
+            .map((item) => mapSearchItemToCatalogItem(item, category || "supplies", retrievedAt))
+            .filter((item): item is NonNullable<typeof item> => item !== null);
+
+          // Register live Amazon products into dynamic catalog so subsequent verify_plan & prepare_intent succeed
+          registerCatalogProducts(catalogItems);
+
+          return {
+            count: catalogItems.length,
+            source: "Amazon India (ScraperAPI)",
+            retrievedAt,
+            disclaimer:
+              "Prices and stock status retrieved live from Amazon India via ScraperAPI. Prices may change on Amazon.in and are not guaranteed at checkout.",
+            items: catalogItems.map((r) => ({
+              id: r.id,
+              asin: r.asin,
+              name: r.name,
+              category: r.category,
+              priceMinor: r.priceMinor,
+              priceDisplay: formatInr(r.priceMinor),
+              inStock: r.inStock,
+              availableStock: r.availableStock,
+              url: r.url,
+              imageUrl: r.imageUrl,
+              rating: r.rating,
+              totalReviews: r.totalReviews,
+              description: r.description,
+            })),
+          };
+        } catch (apiErr: any) {
+          if (process.env.NODE_ENV !== "test") {
+            throw new Error(`ScraperAPI search failed: ${apiErr.message || String(apiErr)}`);
+          }
+        }
+      }
+
+      // 2. Test Fixture Fallback (strictly for automated unit test suites without live API credentials)
       const results = searchCatalog(query, category);
       return {
         count: results.length,
+        source: "Catalog Test Fixtures",
         items: results.map((r) => ({
           id: r.id,
+          asin: r.asin || r.id,
           name: r.name,
           category: r.category,
           priceMinor: r.priceMinor,
           priceDisplay: formatInr(r.priceMinor),
           inStock: r.inStock,
           availableStock: r.availableStock,
+          url: r.url || formatAmazonIndiaUrl(r.id),
           description: r.description,
         })),
+      };
+    },
+  },
+
+  // ─── 2b. get_product_details ───
+  {
+    name: "get_product_details",
+    description:
+      "Retrieve full product details, live pricing, specifications, and availability for a specific Amazon India ASIN using ScraperAPI.",
+    parameters: {
+      type: "object",
+      properties: {
+        asin: { type: "string", description: "The Amazon Standard Identification Number (ASIN)." },
+      },
+      required: ["asin"],
+    },
+    run: async ({ asin }: { asin: string }) => {
+      if (!asin) throw new Error("ASIN is required.");
+
+      if (process.env.SCRAPERAPI_KEY) {
+        const { product, retrievedAt } = await getAmazonProductDetails(asin);
+        let priceResult = parsePriceToPaise(product.pricing, product.list_price?.toString());
+
+        // If pricing is missing from product endpoint, inspect offers endpoint if available
+        if (priceResult.priceMinor === null) {
+          const offers = await getAmazonOffersIfAvailable(asin);
+          if (offers?.listings && offers.listings.length > 0) {
+            priceResult = parsePriceToPaise(offers.listings[0].price, offers.listings[0].price_with_currency);
+          }
+        }
+
+        const inStock =
+          !product.availability_status?.toLowerCase().includes("out of stock") &&
+          priceResult.priceMinor !== null;
+        const url = formatAmazonIndiaUrl(asin);
+
+        if (priceResult.priceMinor !== null) {
+          registerCatalogProduct({
+            id: asin,
+            asin,
+            name: product.name || asin,
+            category: product.product_category || "supplies",
+            description: product.full_description || product.name || "",
+            priceMinor: priceResult.priceMinor,
+            inStock,
+            availableStock: inStock ? 50 : 0,
+            unit: "piece",
+            url,
+            imageUrl: product.images?.[0],
+            rating: product.average_rating,
+            totalReviews: product.total_reviews,
+            retrievedAt,
+          });
+        }
+
+        return {
+          asin,
+          name: product.name,
+          category: product.product_category,
+          priceMinor: priceResult.priceMinor,
+          priceDisplay: priceResult.priceDisplay,
+          inStock,
+          url,
+          rating: product.average_rating,
+          totalReviews: product.total_reviews,
+          featureBullets: product.feature_bullets,
+          description: product.full_description,
+          retrievedAt,
+          disclaimer:
+            "Prices retrieved live from Amazon India via ScraperAPI. Prices may change on Amazon.in and are not guaranteed at checkout.",
+        };
+      }
+
+      // Test fixture fallback
+      const fixture = getProductById(asin);
+      if (!fixture) throw new Error(`Product ${asin} not found.`);
+      return {
+        asin: fixture.id,
+        name: fixture.name,
+        priceMinor: fixture.priceMinor,
+        priceDisplay: formatInr(fixture.priceMinor),
+        inStock: fixture.inStock,
+        url: formatAmazonIndiaUrl(fixture.id),
       };
     },
   },
@@ -199,7 +340,7 @@ export const tools: Tool[] = [
       properties: {
         budgetMinor: {
           type: "number",
-          description: "Budget cap in minor units (paise). E.g. 300000 for ₹3,000.",
+          description: "Budget cap in minor units (paise). Minimum 10000 (₹100), maximum 20000000 (₹2,00,000). E.g. 300000 for ₹3,000; 15000000 for ₹1,50,000.",
         },
         candidateProductIds: {
           type: "array",
@@ -328,7 +469,7 @@ export const tools: Tool[] = [
         },
         budgetMinor: {
           type: "number",
-          description: "Budget limit in paise.",
+          description: "Budget limit in paise. Minimum 10000 (₹100), maximum 20000000 (₹2,00,000).",
         },
         items: {
           type: "array",

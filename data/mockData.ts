@@ -15,6 +15,78 @@ export interface ProductItem {
   inStock: boolean;
   imagePlaceholder: string; // SVG icon or abstract color
   badge?: string;
+  asin?: string;
+  url?: string;
+  imageUrl?: string;
+  rating?: number;
+  totalReviews?: number;
+  retrievedAt?: string;
+  source?: "scraperapi" | "fixture" | "catalog";
+  // Priority & Optimization fields
+  essential?: boolean;
+  optional?: boolean;
+  priority?: number;
+  subtotal?: number;
+  reason?: string;
+  originalPrice?: number;
+  optimizationNote?: string;
+  // Total Cost & Trade-Off fields
+  estimatedTotalCost?: number;
+  costBreakdown?: import("@/lib/trade-off-engine").ProductCostBreakdown;
+  merchant?: string;
+  shippingCost?: number | null;
+  taxes?: number | null;
+  discounts?: number | null;
+  specifications?: Record<string, string>;
+  features?: string[];
+  tradeOffComparison?: import("@/lib/trade-off-engine").TradeOffRecommendation;
+  availableAlternatives?: import("@/lib/trade-off-engine").ProductComparisonItem[];
+  // Product-Level Budget Matching fields
+  targetPriceDelta?: import("@/lib/budget-intent").TargetPriceDelta;
+  priceFitRationale?: string;
+}
+
+export interface PlanOptimizationChange {
+  type: "replaced" | "removed" | "quantity_reduced" | "preserved";
+  itemId: string;
+  itemName: string;
+  originalPrice: number;
+  newPrice?: number;
+  savings: number;
+  reason: string;
+  essentialAffected: boolean;
+  tradeOff?: string;
+  alternativeItem?: ProductItem;
+  tradeOffDetails?: {
+    advantages?: string[];
+    drawbacks?: string[];
+    costDifference?: number;
+    requirementImpact?: string;
+  };
+}
+
+export interface BudgetOptimizationResult {
+  feasible: boolean;
+  originalTotal: number;
+  optimizedTotal: number;
+  budgetOverrun: number;
+  savings: number;
+  remainingBudget: number;
+  essentialCount: number;
+  optionalCount: number;
+  removedItems: ProductItem[];
+  replacedItems: {
+    original: ProductItem;
+    alternative: ProductItem;
+    savings: number;
+  }[];
+  changes: PlanOptimizationChange[];
+  explanation: string;
+  summary: string;
+  lowestFeasibleTotal?: number;
+  shortfallAmount?: number;
+  infeasibilityReason?: string;
+  suggestedCompromises?: string[];
 }
 
 export interface ShoppingPlanData {
@@ -40,6 +112,30 @@ export interface ShoppingPlanData {
     integerPaiseExact: boolean;
     allInStock: boolean;
   };
+  // Budget Optimization fields
+  originalTotal?: number;
+  originalPlan?: ShoppingPlanData;
+  budgetOverrun?: number;
+  totalSavings?: number;
+  optimizationResult?: BudgetOptimizationResult;
+  optimizationSummary?: string;
+  changes?: PlanOptimizationChange[];
+  feasible?: boolean;
+  // Total Cost & Trade-Off Engine fields
+  estimatedPlanTotal?: number;
+  orderShipping?: number | null;
+  orderTaxes?: number | null;
+  costCompleteness?: import("@/lib/trade-off-engine").CostCompleteness;
+  unknownCostComponents?: string[];
+  userPreference?: import("@/lib/trade-off-engine").UserTradeOffPreference;
+  tradeOffSummary?: string;
+  isDemoFallback?: boolean;
+  demoDisclaimer?: string;
+  // Product-Level Budget Matching fields
+  budgetMode?: import("@/lib/budget-intent").BudgetMode;
+  budgetIntent?: import("@/lib/budget-intent").UserBudgetIntent;
+  targetPriceRange?: import("@/lib/budget-intent").PriceTolerance;
+  targetPriceDelta?: import("@/lib/budget-intent").TargetPriceDelta;
 }
 
 export interface PresetSituation {

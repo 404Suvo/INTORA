@@ -21,6 +21,12 @@ import {
   SHOPPING_INTENT_REGISTRY_ABI,
 } from "./contract-config";
 import { promptSwitchToBaseSepolia } from "./web3-wallet";
+import {
+  optimizeShoppingPlan,
+  processFollowUpRequest,
+  type OptimizationOptions,
+} from "./budget-optimizer";
+import { validateBudgetInr } from "./types";
 
 // ============================================================================
 // STUB 1: generatePlan()
@@ -47,527 +53,202 @@ function cleanTitleFromPrompt(prompt: string): string {
   return `${words.join(" ")} Essentials`;
 }
 
-export async function generatePlan(prompt: string, budget: number): Promise<ShoppingPlanData> {
-  // Simulate Gemini reasoning latency (300ms - 600ms)
-  await new Promise((resolve) => setTimeout(resolve, 400));
+export interface PlanGenerationClientOptions {
+  preference?: import("./trade-off-engine").UserTradeOffPreference;
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}
 
-  const lower = prompt.toLowerCase().trim();
-  const roundedBudget = Math.max(500, Math.round(budget));
-  const planId = `intent_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
-  const timestamp =
-    new Date().toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }) + " IST";
-
-  // 1. OUT OF STOCK / OUT OF CATALOG HANDLING
-  // A. Discontinued USB Desk Fan
-  if (lower.includes("fan") || lower.includes("cooler")) {
-    const result: ShoppingPlanData = {
-      id: planId,
-      title: "Product Stock Status: Portable USB Desk Fan",
-      situation: prompt,
-      budget: roundedBudget,
-      totalAmount: 0,
-      remainingAmount: roundedBudget,
-      version: 1,
-      timestamp,
-      items: [],
-      outOfStockNotice: {
-        itemName: "Portable USB Desk Fan",
-        message:
-          "We apologize, but the Portable USB Desk Fan is currently out of stock in our verified catalog inventory. Our team is actively restocking this item. Please check back shortly!",
-      },
-      validation: {
-        budgetCompliant: true,
-        catalogGrounded: true,
-        integerPaiseExact: true,
-        allInStock: false,
-      },
-      planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-    };
-    result.planHash = await hashPlan(result);
-    return result;
+export async function generatePlan(
+  prompt: string,
+  budget: number,
+  options: PlanGenerationClientOptions = {}
+): Promise<ShoppingPlanData> {
+  const budgetValidation = validateBudgetInr(budget);
+  if (!budgetValidation.valid || budgetValidation.budget === undefined) {
+    throw new Error(budgetValidation.error || "A positive rupee budget amount is required.");
   }
+  const roundedBudget = budgetValidation.budget;
 
-  // B. Items outside catalog scope
-  const outOfCatalogItems: Record<string, string> = {
-    laptop: "Laptops & Computers",
-    shoes: "Footwear & Shoes",
-    shoe: "Footwear & Shoes",
-    smartphone: "Smartphones & Mobile Devices",
-    phone: "Smartphones & Mobile Devices",
-    iphone: "Smartphones & Mobile Devices",
-    pizza: "Hot Food Delivery",
-    burger: "Hot Food Delivery",
-    watch: "Smartwatches & Timepieces",
-    camera: "DSLR / Action Cameras",
-    bike: "Vehicles & Bicycles",
-    motorcycle: "Vehicles & Motorcycles",
-  };
-
-  for (const [key, label] of Object.entries(outOfCatalogItems)) {
-    if (lower.includes(key)) {
-      const result: ShoppingPlanData = {
-        id: planId,
-        title: `Catalog Availability: ${label}`,
-        situation: prompt,
-        budget: roundedBudget,
-        totalAmount: 0,
-        remainingAmount: roundedBudget,
-        version: 1,
-        timestamp,
-        items: [],
-        outOfStockNotice: {
-          itemName: label,
-          message: `We apologize, but "${label}" is not currently in stock in our catalog. Intora currently stocks verified stationery, notebooks, electronics, hydration flasks, backpacks, and snacks. Please select from our available catalog categories!`,
-        },
-        validation: {
-          budgetCompliant: true,
-          catalogGrounded: true,
-          integerPaiseExact: true,
-          allInStock: false,
-        },
-        planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      };
-      result.planHash = await hashPlan(result);
-      return result;
-    }
-  }
-
-  // 2. SPECIFIC PRODUCT QUERIES (Show ONLY requested products)
-  // A. Notebooks
-  if (
-    lower.includes("notebook") ||
-    lower.includes("notebooks") ||
-    lower.includes("notepad") ||
-    lower.includes("spiral") ||
-    lower.includes("diary") ||
-    lower.includes("ruled")
-  ) {
-    const unitPrice = 199;
-    const qty = Math.max(1, Math.min(25, Math.floor(roundedBudget / unitPrice)));
-    const total = qty * unitPrice;
-    const items: ProductItem[] = [
-      {
-        id: "prod-notebook-04",
-        name: "A5 Dot-Grid Hardbound Spiral Notebook (200 pgs)",
-        category: "Stationery",
-        quantity: qty,
-        unitPrice: unitPrice,
-        totalPrice: total,
-        rationale: "High-grade 200-page dot-grid ruled spiral notebooks for course notes and lecture revision.",
-        inStock: true,
-        imagePlaceholder: "linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%)",
-        badge: "Essential",
-      },
-    ];
-
-    const result: ShoppingPlanData = {
-      id: planId,
-      title: "Notebook & Academic Study Essentials",
-      situation: prompt,
-      budget: roundedBudget,
-      totalAmount: total,
-      remainingAmount: roundedBudget - total,
-      version: 1,
-      timestamp,
-      items,
-      validation: {
-        budgetCompliant: total <= roundedBudget,
-        catalogGrounded: true,
-        integerPaiseExact: true,
-        allInStock: true,
-      },
-      planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-    };
-    result.planHash = await hashPlan(result);
-    return result;
-  }
-
-  // B. Pens / Gel Pens
-  if (
-    lower.includes("pen") ||
-    lower.includes("pens") ||
-    lower.includes("gel pen") ||
-    lower.includes("ballpoint")
-  ) {
-    const unitPrice = 195;
-    const qty = Math.max(1, Math.min(30, Math.floor(roundedBudget / unitPrice)));
-    const total = qty * unitPrice;
-    const items: ProductItem[] = [
-      {
-        id: "prod-pen-05",
-        name: "Quick-Dry Waterproof Gel Pen Set (Pack of 5)",
-        category: "Stationery",
-        quantity: qty,
-        unitPrice: unitPrice,
-        totalPrice: total,
-        rationale: "Smudge-free 0.5mm smooth black and blue ink pens for long writing and exam sessions.",
-        inStock: true,
-        imagePlaceholder: "linear-gradient(135deg, #BFDBFE 0%, #93C5FD 100%)",
-        badge: "Essential",
-      },
-    ];
-
-    const result: ShoppingPlanData = {
-      id: planId,
-      title: "Writing Essentials: Waterproof Gel Pens",
-      situation: prompt,
-      budget: roundedBudget,
-      totalAmount: total,
-      remainingAmount: roundedBudget - total,
-      version: 1,
-      timestamp,
-      items,
-      validation: {
-        budgetCompliant: total <= roundedBudget,
-        catalogGrounded: true,
-        integerPaiseExact: true,
-        allInStock: true,
-      },
-      planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-    };
-    result.planHash = await hashPlan(result);
-    return result;
-  }
-
-  // C. Water Bottle / Flask / Hydration
-  if (
-    lower.includes("bottle") ||
-    lower.includes("flask") ||
-    lower.includes("water bottle") ||
-    lower.includes("sipper")
-  ) {
-    const unitPrice = 599;
-    const qty = Math.max(1, Math.min(10, Math.floor(roundedBudget / unitPrice)));
-    const total = qty * unitPrice;
-    const items: ProductItem[] = [
-      {
-        id: "prod-bottle-01",
-        name: "Double-Wall Insulated Steel Flask (750ml)",
-        category: "Hydration",
-        quantity: qty,
-        unitPrice: unitPrice,
-        totalPrice: total,
-        rationale: "Double-walled vacuum insulated flask keeping water ice-cold for 18 hours.",
-        inStock: true,
-        imagePlaceholder: "linear-gradient(135deg, #F9D5CB 0%, #F4A28C 100%)",
-        badge: "Essential",
-      },
-    ];
-
-    const result: ShoppingPlanData = {
-      id: planId,
-      title: "Double-Wall Insulated Hydration Flask",
-      situation: prompt,
-      budget: roundedBudget,
-      totalAmount: total,
-      remainingAmount: roundedBudget - total,
-      version: 1,
-      timestamp,
-      items,
-      validation: {
-        budgetCompliant: total <= roundedBudget,
-        catalogGrounded: true,
-        integerPaiseExact: true,
-        allInStock: true,
-      },
-      planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-    };
-    result.planHash = await hashPlan(result);
-    return result;
-  }
-
-  // D. Power Bank / Charger / Battery
-  if (
-    lower.includes("power bank") ||
-    lower.includes("powerbank") ||
-    lower.includes("charger") ||
-    lower.includes("battery pack")
-  ) {
-    const unitPrice = 999;
-    const qty = Math.max(1, Math.min(5, Math.floor(roundedBudget / unitPrice)));
-    const total = qty * unitPrice;
-    const items: ProductItem[] = [
-      {
-        id: "prod-powerbank-02",
-        name: "10,000 mAh Compact Fast-Charging Power Bank",
-        category: "Electronics",
-        quantity: qty,
-        unitPrice: unitPrice,
-        totalPrice: total,
-        rationale: "Ensures smartphone and camera battery last through long campus days and concerts.",
-        inStock: true,
-        imagePlaceholder: "linear-gradient(135deg, #E9D8FF 0%, #C4B5FD 100%)",
-        badge: "Top Pick",
-      },
-    ];
-
-    const result: ShoppingPlanData = {
-      id: planId,
-      title: "10,000mAh Fast-Charging Power Bank",
-      situation: prompt,
-      budget: roundedBudget,
-      totalAmount: total,
-      remainingAmount: roundedBudget - total,
-      version: 1,
-      timestamp,
-      items,
-      validation: {
-        budgetCompliant: total <= roundedBudget,
-        catalogGrounded: true,
-        integerPaiseExact: true,
-        allInStock: true,
-      },
-      planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-    };
-    result.planHash = await hashPlan(result);
-    return result;
-  }
-
-  // E. Snacks / Nutrition
-  if (
-    lower.includes("snack") ||
-    lower.includes("snacks") ||
-    lower.includes("energy bar") ||
-    lower.includes("granola") ||
-    lower.includes("trail mix")
-  ) {
-    const items: ProductItem[] = [];
-    let spent = 0;
-    const barQty = Math.max(1, Math.min(4, Math.floor(roundedBudget / 685)));
-    items.push({
-      id: "prod-energy-bars",
-      name: "Nutty Granola Energy Bars (Box of 6)",
-      category: "Snacks",
-      quantity: barQty,
-      unitPrice: 300,
-      totalPrice: barQty * 300,
-      rationale: "Wholesome oats, almonds, and honey snack bars for sustained energy.",
-      inStock: true,
-      imagePlaceholder: "linear-gradient(135deg, #FED7AA 0%, #F97316 100%)",
-      badge: "Energy",
-    });
-    spent += barQty * 300;
-
-    if (roundedBudget - spent >= 385) {
-      const mixQty = Math.max(1, Math.floor((roundedBudget - spent) / 385));
-      items.push({
-        id: "prod-trailmix-06",
-        name: "High-Calorie Nut & Dried Fruit Trail Mix (500g)",
-        category: "Snacks",
-        quantity: mixQty,
-        unitPrice: 385,
-        totalPrice: mixQty * 385,
-        rationale: "Wholesome cashews, almonds, cranberries, and pumpkin seeds.",
-        inStock: true,
-        imagePlaceholder: "linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%)",
+  // 1. Client-side browser execution: call server endpoint /api/plan/generate
+  if (typeof window !== "undefined") {
+    let res: Response;
+    try {
+      res = await fetch("/api/plan/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, budget: roundedBudget, preference: options.preference }),
+        signal: options.signal,
       });
-      spent += mixQty * 385;
-    }
-
-    const result: ShoppingPlanData = {
-      id: planId,
-      title: "Trail Snacks & Sustained Energy Pack",
-      situation: prompt,
-      budget: roundedBudget,
-      totalAmount: spent,
-      remainingAmount: roundedBudget - spent,
-      version: 1,
-      timestamp,
-      items,
-      validation: {
-        budgetCompliant: spent <= roundedBudget,
-        catalogGrounded: true,
-        integerPaiseExact: true,
-        allInStock: true,
-      },
-      planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-    };
-    result.planHash = await hashPlan(result);
-    return result;
-  }
-
-  // F. Backpack / Bag
-  if (
-    lower.includes("backpack") ||
-    lower.includes("daypack") ||
-    lower.includes("campus bag")
-  ) {
-    const unitPrice = 899;
-    const qty = Math.max(1, Math.min(5, Math.floor(roundedBudget / unitPrice)));
-    const total = qty * unitPrice;
-    const items: ProductItem[] = [
-      {
-        id: "prod-backpack",
-        name: "Water-Resistant Campus Daypack (24L)",
-        category: "Supplies",
-        quantity: qty,
-        unitPrice: unitPrice,
-        totalPrice: total,
-        rationale: "Durable ergonomic backpack with padded laptop sleeve and multiple utility pockets.",
-        inStock: true,
-        imagePlaceholder: "linear-gradient(135deg, #D1FAE5 0%, #10B981 100%)",
-        badge: "Essential",
-      },
-    ];
-
-    const result: ShoppingPlanData = {
-      id: planId,
-      title: "Water-Resistant Campus Daypack",
-      situation: prompt,
-      budget: roundedBudget,
-      totalAmount: total,
-      remainingAmount: roundedBudget - total,
-      version: 1,
-      timestamp,
-      items,
-      validation: {
-        budgetCompliant: total <= roundedBudget,
-        catalogGrounded: true,
-        integerPaiseExact: true,
-        allInStock: true,
-      },
-      planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-    };
-    result.planHash = await hashPlan(result);
-    return result;
-  }
-
-  // 3. SITUATION & EVENT SCENARIOS
-  let basePlan: ShoppingPlanData;
-  let dynamicTitle: string;
-
-  if (
-    lower.includes("trek") ||
-    lower.includes("hike") ||
-    lower.includes("mountain") ||
-    lower.includes("outdoor") ||
-    lower.includes("rajmachi")
-  ) {
-    basePlan = MOCK_PLANS["trekking-trip"];
-    dynamicTitle = "Western Ghats Trail Essentials";
-  } else if (
-    lower.includes("hostel") ||
-    lower.includes("dorm") ||
-    lower.includes("room setup") ||
-    lower.includes("blanket") ||
-    lower.includes("lamp") ||
-    lower.includes("roommate")
-  ) {
-    basePlan = MOCK_PLANS["hostel-setup"] || MOCK_PLANS["college-fest"];
-    dynamicTitle = "First-Year Hostel Room Setup";
-  } else if (
-    lower.includes("diwali") ||
-    lower.includes("festive") ||
-    lower.includes("gift") ||
-    lower.includes("hamper") ||
-    lower.includes("candle") ||
-    lower.includes("diya")
-  ) {
-    basePlan = MOCK_PLANS["diwali-gifting"] || MOCK_PLANS["college-fest"];
-    dynamicTitle = "Festive Family & Neighbor Gifting Hamper";
-  } else if (
-    lower.includes("fresher") ||
-    lower.includes("orientation") ||
-    lower.includes("freshers")
-  ) {
-    basePlan = MOCK_PLANS["freshers-week"] || MOCK_PLANS["college-fest"];
-    dynamicTitle = "Freshers' Orientation Week Essentials";
-  } else if (
-    lower.includes("fest") ||
-    lower.includes("festival") ||
-    lower.includes("kolkata") ||
-    lower.includes("cultural") ||
-    lower.includes("concert")
-  ) {
-    basePlan = MOCK_PLANS["college-fest"];
-    dynamicTitle = "Kolkata Campus Fest Essentials";
-  } else {
-    // Dynamic Custom Prompt Title based on user's exact input!
-    basePlan = MOCK_PLANS["college-fest"];
-    dynamicTitle = cleanTitleFromPrompt(prompt);
-  }
-
-  // 4. Knapsack scaling for situation scenarios
-  const baseBudget = basePlan.budget || 3000;
-  const budgetRatio = roundedBudget / baseBudget;
-
-  let candidateItems: ProductItem[] = basePlan.items.map((item, idx) => {
-    let qty = item.quantity;
-    if (budgetRatio > 1.6 && (item.badge === "Essential" || idx % 2 === 0)) {
-      qty = Math.min(4, qty + 1);
-    } else if (budgetRatio < 0.65 && !item.badge) {
-      qty = Math.max(1, Math.floor(qty * 0.8));
-    }
-    return {
-      ...item,
-      quantity: qty,
-      totalPrice: item.unitPrice * qty,
-    };
-  });
-
-  let currentTotal = candidateItems.reduce((acc, curr) => acc + curr.totalPrice, 0);
-
-  if (currentTotal > roundedBudget) {
-    for (let i = candidateItems.length - 1; i >= 0 && currentTotal > roundedBudget; i--) {
-      const item = candidateItems[i];
-      if (item.quantity > 1) {
-        const canReduce = Math.min(
-          item.quantity - 1,
-          Math.ceil((currentTotal - roundedBudget) / item.unitPrice)
-        );
-        item.quantity -= canReduce;
-        item.totalPrice = item.unitPrice * item.quantity;
-        currentTotal = candidateItems.reduce((acc, curr) => acc + curr.totalPrice, 0);
+    } catch (networkErr: any) {
+      if (networkErr?.name === "AbortError" || options.signal?.aborted) {
+        const abortErr = new Error("Request was cancelled.");
+        (abortErr as any).name = "AbortError";
+        throw abortErr;
       }
+      throw new Error(`Network failure connecting to /api/plan/generate: ${networkErr?.message || String(networkErr)}`);
     }
 
-    if (currentTotal > roundedBudget) {
-      candidateItems = candidateItems.filter((item) => {
-        if (currentTotal <= roundedBudget) return true;
-        if (item.badge === "Essential") return true;
-        currentTotal -= item.totalPrice;
-        return false;
-      });
-      currentTotal = candidateItems.reduce((acc, curr) => acc + curr.totalPrice, 0);
+    let data: any;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Server returned a non-JSON response (Status: ${res.status}).`);
     }
+
+    if (!res.ok || !data.success) {
+      const errMsg =
+        data.userFriendlyMessage ||
+        data.error ||
+        `Failed to generate live Amazon plan via ScraperAPI (Status: ${res.status}).`;
+      const err = new Error(errMsg);
+      (err as any).statusCode = res.status;
+      (err as any).errorCode = data.errorCode || (res.status === 504 ? "PROVIDER_TIMEOUT" : "SEARCH_FAILED");
+      (err as any).isRetryable = data.isRetryable ?? (res.status === 504 || res.status === 429);
+      (err as any).userFriendlyMessage = data.userFriendlyMessage || errMsg;
+      (err as any).rawError = data.error;
+      (err as any).details = data.details;
+      throw err;
+    }
+    return data.plan;
   }
 
-  if (candidateItems.length === 0 && basePlan.items.length > 0) {
-    const single = { ...basePlan.items[0], quantity: 1, totalPrice: basePlan.items[0].unitPrice };
-    candidateItems = [single];
-    currentTotal = single.totalPrice;
-  }
+  // 2. Server-side Node.js execution: call planner engine directly
+  const { generateRealShoppingPlan } = await import("./planner-engine");
+  return generateRealShoppingPlan(prompt, roundedBudget, {
+    preference: options.preference,
+    signal: options.signal,
+    timeoutMs: options.timeoutMs,
+  });
+}
 
-  const remaining = Math.max(0, roundedBudget - currentTotal);
+/**
+ * Generates an explicitly labeled sample/demo shopping plan for offline evaluation.
+ * Never claims live verified prices and explicitly marks isDemoFallback: true.
+ */
+export function getDemoFallbackPlan(
+  prompt: string,
+  budget: number = 3000,
+  preference: import("./trade-off-engine").UserTradeOffPreference = "balanced"
+): ShoppingPlanData {
+  const basePlan = MOCK_PLANS["college-fest"] || Object.values(MOCK_PLANS)[0];
+  const items = basePlan.items.map((item) => ({
+    ...item,
+    source: "fixture" as const,
+  }));
+  const total = items.reduce((acc, i) => acc + i.totalPrice, 0);
 
-  const resultPlan: ShoppingPlanData = {
+  return {
     ...basePlan,
-    id: planId,
-    title: dynamicTitle,
-    situation: prompt,
-    budget: roundedBudget,
-    totalAmount: currentTotal,
-    remainingAmount: remaining,
-    version: 1,
-    timestamp,
-    items: candidateItems,
+    id: `demo-plan-${Date.now()}`,
+    title: `[Demo] ${cleanTitleFromPrompt(prompt)}`,
+    situation: prompt || basePlan.situation,
+    budget,
+    totalAmount: total,
+    remainingAmount: Math.max(0, budget - total),
+    isDemoFallback: true,
+    demoDisclaimer:
+      "Sample demonstration plan using pre-saved catalog items. Live Amazon India prices were NOT verified in real-time.",
     validation: {
-      budgetCompliant: currentTotal <= roundedBudget,
+      budgetCompliant: total <= budget,
       catalogGrounded: true,
       integerPaiseExact: true,
       allInStock: true,
     },
-    planHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
+    userPreference: preference,
   };
+}
 
-  resultPlan.planHash = await hashPlan(resultPlan);
-  return resultPlan;
+/**
+ * Evaluates multi-criteria trade-offs across candidate products.
+ */
+export async function evaluateTradeOffs(
+  candidates: any[],
+  prompt: string,
+  options: {
+    quantity?: number;
+    preference?: import("./trade-off-engine").UserTradeOffPreference;
+    budget?: number;
+  } = {}
+): Promise<import("./trade-off-engine").TradeOffRecommendation | null> {
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/plan/trade-offs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidates,
+          prompt,
+          quantity: options.quantity,
+          preference: options.preference,
+          budget: options.budget,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.recommendation) {
+          return data.recommendation;
+        }
+      }
+    } catch (e) {
+      console.warn("Client /api/plan/trade-offs error:", e);
+    }
+  }
+
+  const { rankAndRecommendCandidates, normalizeProduct, extractUserRequirements } = await import(
+    "./trade-off-engine"
+  );
+  const normalized = candidates.map((c) => normalizeProduct(c)).filter(Boolean) as any[];
+  const reqs = extractUserRequirements(prompt);
+  return rankAndRecommendCandidates(
+    normalized,
+    options.quantity || 1,
+    reqs,
+    options.preference || "balanced",
+    options.budget
+  );
+}
+
+/**
+ * Optimizes an existing shopping plan against a target budget or user constraints.
+ */
+export async function optimizePlan(
+  plan: ShoppingPlanData,
+  targetBudget?: number,
+  options?: OptimizationOptions
+): Promise<ShoppingPlanData> {
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/plan/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan,
+          targetBudget,
+          userConstraints: options?.userConstraints,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.plan) {
+          return data.plan;
+        }
+      }
+    } catch (e) {
+      console.warn("Client /api/plan/optimize fallback to local engine:", e);
+    }
+  }
+
+  return optimizeShoppingPlan(plan, targetBudget, options);
+}
+
+/**
+ * Restores the original plan prior to budget optimization adjustments.
+ */
+export async function restorePlan(plan: ShoppingPlanData): Promise<ShoppingPlanData> {
+  return optimizePlan(plan, undefined, {
+    userConstraints: { restoreOriginal: true },
+  });
 }
 
 // ============================================================================
@@ -886,5 +567,111 @@ function saveCommittedPlanLocally(
   } catch (err) {
     // Ignore storage quota errors
   }
+}
+
+/**
+ * Simulates a What-if scenario request on a shopping plan.
+ * Invokes /api/plan/simulate on the client, or server-side simulation directly in Node.
+ */
+export async function simulateWhatIfScenario(
+  plan: ShoppingPlanData,
+  scenarioPrompt: string,
+  options: {
+    preference?: import("./trade-off-engine").UserTradeOffPreference;
+    signal?: AbortSignal;
+  } = {}
+): Promise<{
+  plan: ShoppingPlanData;
+  versionRecord: any;
+  diff: any;
+  summary: string;
+  ambiguityQuestion?: string;
+}> {
+  if (typeof window !== "undefined") {
+    let res: Response;
+    try {
+      res = await fetch("/api/plan/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan,
+          scenarioPrompt,
+          preference: options.preference,
+        }),
+        signal: options.signal,
+      });
+    } catch (networkErr: any) {
+      if (networkErr?.name === "AbortError" || options.signal?.aborted) {
+        const abortErr = new Error("Simulation request was cancelled.");
+        (abortErr as any).name = "AbortError";
+        throw abortErr;
+      }
+      throw new Error(`Network failure connecting to /api/plan/simulate: ${networkErr?.message || String(networkErr)}`);
+    }
+
+    let data: any;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Server returned non-JSON response (Status: ${res.status}).`);
+    }
+
+    if (data.ambiguous) {
+      return {
+        plan,
+        versionRecord: null,
+        diff: null,
+        summary: data.ambiguityQuestion,
+        ambiguityQuestion: data.ambiguityQuestion,
+      };
+    }
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Simulation failed.");
+    }
+
+    return {
+      plan: data.plan,
+      versionRecord: data.versionRecord,
+      diff: data.diff,
+      summary: data.summary,
+    };
+  }
+
+  // Node runtime / offline fallback
+  const { interpretScenarioRequest, simulateShoppingPlan } = await import("./what-if");
+  const scenario = await interpretScenarioRequest(scenarioPrompt, {
+    currentBudget: plan.budget,
+    currentSituation: plan.situation || plan.title,
+    currentItems: plan.items,
+    currentPreference: options.preference || plan.userPreference,
+    parentPlanId: plan.id,
+    parentVersion: plan.version || 1,
+  });
+
+  if (scenario.ambiguityQuestion) {
+    return {
+      plan,
+      versionRecord: null,
+      diff: null,
+      summary: scenario.ambiguityQuestion,
+      ambiguityQuestion: scenario.ambiguityQuestion,
+    };
+  }
+
+  if (!scenario.isValid) {
+    throw new Error(scenario.validationErrors?.join(" ") || "Invalid scenario parameters.");
+  }
+
+  const result = await simulateShoppingPlan(plan, scenario, {
+    userPreference: options.preference || plan.userPreference,
+  });
+
+  return {
+    plan: result.newPlan,
+    versionRecord: result.versionRecord,
+    diff: result.diff,
+    summary: result.summary,
+  };
 }
 

@@ -159,23 +159,82 @@ export const PRODUCT_CATALOG: readonly ProductCatalogItem[] = [
   },
 ];
 
-// Fast O(1) in-memory lookup index
+// Fast O(1) in-memory lookup index for test fixtures
 const CATALOG_BY_ID = new Map<string, ProductCatalogItem>(
   PRODUCT_CATALOG.map((p) => [p.id, p])
 );
 
+// Dynamic registry for real Amazon India products fetched via ScraperAPI
+const DYNAMIC_CATALOG_BY_ID = new Map<string, ProductCatalogItem>();
+
+/**
+ * Registers a live Amazon product fetched from ScraperAPI into the catalog registry.
+ */
+export function registerCatalogProduct(product: ProductCatalogItem): void {
+  if (product && product.id) {
+    DYNAMIC_CATALOG_BY_ID.set(product.id, product);
+    if (product.asin && product.asin !== product.id) {
+      DYNAMIC_CATALOG_BY_ID.set(product.asin, product);
+    }
+  }
+}
+
+/**
+ * Batch registers live Amazon products fetched from ScraperAPI.
+ */
+export function registerCatalogProducts(products: ProductCatalogItem[]): void {
+  for (const product of products) {
+    registerCatalogProduct(product);
+  }
+}
+
+/**
+ * Retrieves all currently registered live Amazon products.
+ */
+export function getRegisteredLiveProducts(): ProductCatalogItem[] {
+  return Array.from(DYNAMIC_CATALOG_BY_ID.values());
+}
+
+/**
+ * Retrieves product by ID or ASIN.
+ * Checks live ScraperAPI registered products first, then falls back to test fixtures.
+ */
 export function getProductById(id: string): ProductCatalogItem | undefined {
+  if (!id) return undefined;
+  // 1. Live dynamic catalog (ScraperAPI)
+  const live = DYNAMIC_CATALOG_BY_ID.get(id);
+  if (live) return live;
+
+  // 2. Test fixtures fallback (for automated unit tests)
   return CATALOG_BY_ID.get(id);
 }
 
 /**
  * Searches the catalog with category filtering, stock prioritization, and multi-token keyword matching.
+ * Combines live ScraperAPI products and test fixtures.
  */
-export function searchCatalog(query: string, category?: string): ProductCatalogItem[] {
+export function searchCatalog(
+  query: string,
+  category?: string,
+  options: { includeFixtures?: boolean } = {}
+): ProductCatalogItem[] {
   const q = query.toLowerCase().trim();
   const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
 
-  return PRODUCT_CATALOG.filter((item) => {
+  const pool: ProductCatalogItem[] = [];
+  const liveItems = Array.from(DYNAMIC_CATALOG_BY_ID.values());
+  pool.push(...liveItems);
+
+  // Include test fixtures if dynamic catalog is empty or explicitly requested
+  if (options.includeFixtures !== false || liveItems.length === 0) {
+    for (const fixture of PRODUCT_CATALOG) {
+      if (!DYNAMIC_CATALOG_BY_ID.has(fixture.id)) {
+        pool.push(fixture);
+      }
+    }
+  }
+
+  return pool.filter((item) => {
     if (category && item.category !== category) return false;
     if (tokens.length === 0) return true;
 
@@ -187,12 +246,17 @@ export function searchCatalog(query: string, category?: string): ProductCatalogI
 
 /** Returns all active in-stock products */
 export function getInStockProducts(): ProductCatalogItem[] {
-  return PRODUCT_CATALOG.filter((item) => item.inStock && item.availableStock > 0);
+  const pool = Array.from(DYNAMIC_CATALOG_BY_ID.values());
+  if (pool.length === 0) {
+    pool.push(...PRODUCT_CATALOG);
+  }
+  return pool.filter((item) => item.inStock && item.availableStock > 0);
 }
 
 /** Returns unique available categories */
 export function getCatalogCategories(): string[] {
-  return Array.from(new Set(PRODUCT_CATALOG.map((p) => p.category)));
+  const all = [...Array.from(DYNAMIC_CATALOG_BY_ID.values()), ...PRODUCT_CATALOG];
+  return Array.from(new Set(all.map((p) => p.category)));
 }
 
 /** Format minor units (paise) to human-readable INR string */
@@ -205,3 +269,4 @@ export function formatInr(minor: number): string {
     maximumFractionDigits: 2,
   }).format(rupees);
 }
+

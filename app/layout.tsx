@@ -11,7 +11,10 @@ export const metadata = {
   description:
     "Intora turns real-life situations into intelligent, catalog-grounded shopping plans. Cryptographic commitment verification on Base Sepolia.",
   icons: {
-    icon: "/favicon.png",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon.png", type: "image/png" },
+    ],
     apple: "/intora-logo.png",
   },
 };

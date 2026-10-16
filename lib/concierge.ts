@@ -359,7 +359,7 @@ export function getLocalConciergeReply(userMessage: string): ConciergeResponse {
     const budgetMatch = q.match(/(?:rs\.?|₹|inr|budget(?: is| of)?|under|cap)\s*[:=]?\s*([0-9]+(?:,[0-9]+)*)/i);
     if (budgetMatch) {
       const parsed = parseInt(budgetMatch[1].replace(/,/g, ""), 10);
-      if (!isNaN(parsed) && parsed > 0) budget = parsed;
+      if (!isNaN(parsed) && parsed > 0) budget = Math.min(200000, parsed);
     }
 
     const energyBarQty = Math.max(1, Math.min(3, Math.floor(budget / 450)));
@@ -439,7 +439,7 @@ export function getLocalConciergeReply(userMessage: string): ConciergeResponse {
     const budgetMatch = q.match(/(?:rs\.?|₹|inr|budget(?: is| of)?|under|cap)\s*[:=]?\s*([0-9]+(?:,[0-9]+)*)/i);
     if (budgetMatch) {
       const parsed = parseInt(budgetMatch[1].replace(/,/g, ""), 10);
-      if (!isNaN(parsed) && parsed > 0) budget = parsed;
+      if (!isNaN(parsed) && parsed > 0) budget = Math.min(200000, parsed);
     } else if (isTrek) {
       budget = 4500;
     } else if (isHostel) {

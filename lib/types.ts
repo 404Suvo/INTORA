@@ -13,6 +13,49 @@ declare global {
  */
 export const CURRENCY = "INR" as const;
 
+/**
+ * Budget limits in Indian Rupees (INR) and minor units (paise).
+ * Supports budgets from ₹100 up to ₹2,00,000 (2 lakh INR).
+ */
+export const MIN_BUDGET_INR = 100;
+export const MAX_BUDGET_INR = 200000;
+export const MIN_BUDGET_PAISE = MIN_BUDGET_INR * 100; // 10,000 paise
+export const MAX_BUDGET_PAISE = MAX_BUDGET_INR * 100; // 20,000,000 paise (200 lakh paise)
+
+/**
+ * Validates a user budget in INR (rupees).
+ * Enforces positive numeric values within [MIN_BUDGET_INR, MAX_BUDGET_INR].
+ */
+export function validateBudgetInr(budget: unknown): {
+  valid: boolean;
+  error?: string;
+  budget?: number;
+} {
+  if (budget === null || budget === undefined || budget === "") {
+    return { valid: false, error: "A positive rupee budget amount is required." };
+  }
+  const num = typeof budget === "number" ? budget : parseFloat(String(budget).replace(/,/g, ""));
+  if (isNaN(num) || !isFinite(num)) {
+    return { valid: false, error: "Budget must be a valid numeric value." };
+  }
+  if (num <= 0) {
+    return { valid: false, error: "A positive rupee 'budget' amount is required." };
+  }
+  if (num < MIN_BUDGET_INR) {
+    return {
+      valid: false,
+      error: `Budget must be at least ₹${MIN_BUDGET_INR.toLocaleString("en-IN")}.`,
+    };
+  }
+  if (num > MAX_BUDGET_INR) {
+    return {
+      valid: false,
+      error: `Budget cannot exceed ₹${MAX_BUDGET_INR.toLocaleString("en-IN")} (2 lakh INR).`,
+    };
+  }
+  return { valid: true, budget: Math.round(num) };
+}
+
 export const ShoppingPlanItemSchema = z.object({
   productId: z.string().min(1, "Product ID cannot be empty"),
   quantity: z
@@ -41,7 +84,8 @@ export const ShoppingPlanSchema = z.object({
   budgetMinor: z
     .number()
     .int("Budget must be an integer minor unit (paise)")
-    .nonnegative("Budget cannot be negative"),
+    .min(MIN_BUDGET_PAISE, `Budget must be at least ₹${MIN_BUDGET_INR.toLocaleString("en-IN")}`)
+    .max(MAX_BUDGET_PAISE, `Budget cannot exceed ₹${MAX_BUDGET_INR.toLocaleString("en-IN")}`),
   items: z.array(ShoppingPlanItemSchema).min(1, "Shopping plan must include at least one item"),
   totalMinor: z
     .number()
@@ -105,16 +149,50 @@ export interface StoredPlanRecord {
   };
 }
 
+export type ProductCategory = "supplies" | "stationery" | "electronics" | "snacks" | "apparel" | "hygiene" | (string & {});
+
 export interface ProductCatalogItem {
   id: string;
   name: string;
-  category: "supplies" | "stationery" | "electronics" | "snacks" | "apparel" | "hygiene";
+  category: ProductCategory;
   description: string;
   priceMinor: number; // in paise
   inStock: boolean;
   availableStock: number;
   unit: string;
+  asin?: string;
+  url?: string;
+  imageUrl?: string;
+  rating?: number;
+  totalReviews?: number;
+  retrievedAt?: string;
+  source?: "scraperapi" | "fixture" | "catalog";
 }
+
+export {
+  type PlanOptimizationChange,
+  type BudgetOptimizationResult,
+  type ProductItem,
+  type ShoppingPlanData,
+} from "@/data/mockData";
+
+export {
+  type ProductCostBreakdown,
+  type ProductComparisonItem,
+  type TradeOffRecommendation,
+  type UserTradeOffPreference,
+  type CostCompleteness,
+  type NormalizedProduct,
+  type UserRequirement,
+  type RequirementMatchResult,
+} from "./trade-off-engine";
+
+export {
+  type BudgetMode,
+  type PriceTolerance,
+  type UserBudgetIntent,
+  type TargetPriceDelta,
+} from "./budget-intent";
 
 export const SCHEMA_VERSION = "1.0.0" as const;
 
