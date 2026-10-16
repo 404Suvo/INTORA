@@ -186,8 +186,9 @@ export const tools: Tool[] = [
       required: ["query"],
     },
     run: async ({ query, category }: { query: string; category?: string }) => {
-      // 1. Live ScraperAPI Amazon India Search
-      if (process.env.SCRAPERAPI_KEY) {
+      const isTestEnv = (process.env.NODE_ENV as string) === "test";
+      // 1. Live ScraperAPI Amazon India Search (skipped during unit testing with offline fixtures)
+      if (process.env.SCRAPERAPI_KEY && !isTestEnv) {
         try {
           const { items, retrievedAt } = await searchAmazonIndia(query, { category });
           const catalogItems = items
@@ -220,7 +221,7 @@ export const tools: Tool[] = [
             })),
           };
         } catch (apiErr: any) {
-          if (process.env.NODE_ENV !== "test") {
+          if (!isTestEnv) {
             throw new Error(`ScraperAPI search failed: ${apiErr.message || String(apiErr)}`);
           }
         }

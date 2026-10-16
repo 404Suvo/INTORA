@@ -1,5 +1,8 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
+
+process.env.NODE_ENV = "test";
+
 import { tools } from "../agent/tools";
 import { BASE_SEPOLIA_CHAIN_ID } from "../lib/contract-config";
 import { generateIntentId } from "../lib/intent-id";

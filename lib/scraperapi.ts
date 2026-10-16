@@ -17,6 +17,15 @@ import { ProductCatalogItem } from "./types";
 import { ProductItem } from "@/data/mockData";
 import { calculateProductCost } from "./trade-off-engine";
 
+// Ensure local .env file is loaded if running in Node without Next.js
+try {
+  if (typeof process !== "undefined" && typeof process.loadEnvFile === "function") {
+    process.loadEnvFile();
+  }
+} catch {
+  // Gracefully ignored if .env does not exist or was already loaded
+}
+
 export const AMAZON_SEARCH_ENDPOINT = "https://api.scraperapi.com/structured/amazon/search";
 export const AMAZON_PRODUCT_ENDPOINT = "https://api.scraperapi.com/structured/amazon/product";
 export const AMAZON_OFFERS_ENDPOINT = "https://api.scraperapi.com/structured/amazon/offers";
@@ -295,9 +304,13 @@ export class ScraperApiError extends Error {
 
 export class ScraperApiKeyMissingError extends Error {
   statusCode: number = 503;
+  errorCode: string = "SCRAPERAPI_KEY_MISSING";
+  isRetryable: boolean = false;
+  userFriendlyMessage: string =
+    "Product search service is temporarily unconfigured. Please configure SCRAPERAPI_KEY in the backend environment.";
 
   constructor(
-    message = "SCRAPERAPI_KEY environment variable is missing. Please add SCRAPERAPI_KEY to your .env configuration."
+    message = "SCRAPERAPI_KEY environment variable is missing. Please add SCRAPERAPI_KEY to your .env file or Vercel Environment Variables."
   ) {
     super(sanitizeErrorMessage(message));
     this.name = "ScraperApiKeyMissingError";
@@ -438,17 +451,56 @@ export class ScraperApiMonitor {
 
 export const scraperApiMonitor = new ScraperApiMonitor(30);
 
+export interface ScraperApiConfigStatus {
+  configured: boolean;
+  missing: boolean;
+  error?: string;
+  hint?: string;
+}
+
+/**
+ * Safely inspects whether SCRAPERAPI_KEY is configured in the backend environment.
+ * NEVER makes a network request and NEVER prints or exposes the actual key.
+ */
+export function checkScraperApiConfig(): ScraperApiConfigStatus {
+  const rawKey = process.env.SCRAPERAPI_KEY;
+  const key = rawKey?.trim();
+
+  if (!key || key === "your_scraperapi_key_here") {
+    return {
+      configured: false,
+      missing: true,
+      error: "SCRAPERAPI_KEY is not configured in backend environment.",
+      hint: "Add SCRAPERAPI_KEY to your .env file for local development, or configure SCRAPERAPI_KEY in Vercel Environment Variables and redeploy.",
+    };
+  }
+
+  return {
+    configured: true,
+    missing: false,
+  };
+}
+
+/**
+ * Non-throwing boolean check for whether ScraperAPI is configured.
+ * Safe to call from health checks or status indicators.
+ */
+export function isScraperApiConfigured(): boolean {
+  return checkScraperApiConfig().configured;
+}
+
 /**
  * Returns the ScraperAPI key from server environment or throws a structured error.
+ * Key is accessed ONLY in server-side contexts.
  */
 export function getScraperApiKey(): string {
-  const key = process.env.SCRAPERAPI_KEY?.trim();
-  if (!key) {
+  const config = checkScraperApiConfig();
+  if (!config.configured) {
     throw new ScraperApiKeyMissingError(
-      "SCRAPERAPI_KEY is not configured in backend environment. Please add SCRAPERAPI_KEY to your .env file."
+      `${config.error} ${config.hint || "Please add SCRAPERAPI_KEY to your .env file or Vercel Environment Variables."}`
     );
   }
-  return key;
+  return process.env.SCRAPERAPI_KEY!.trim();
 }
 
 /**

@@ -279,11 +279,12 @@ cp .env.example .env
 
 Configure your API keys and endpoints:
 ```env
-# Google Gemini API Key
+# Google Gemini API Key (Server-Side Only)
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 
-# ScraperAPI (Amazon India Live Data)
+# ScraperAPI (Server-Side Only - Real Amazon India Search & Pricing)
+# Leave empty or set your key in local .env; never commit real keys to Git.
 SCRAPERAPI_KEY=your_scraperapi_key_here
 SCRAPERAPI_TIMEOUT_MS=35000
 
@@ -300,6 +301,18 @@ MAX_BUDGET_CAP_INR=200000
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 4. ☁️ Vercel Production Deployment & Environment Variables
+If deploying or hosting Intora on **Vercel**:
+1. Open your project on the [Vercel Dashboard](https://vercel.com/dashboard).
+2. Navigate to **Settings** > **Environment Variables**.
+3. Add the following required server-side secrets:
+   - `SCRAPERAPI_KEY` (Value: your ScraperAPI production key).
+   - `GEMINI_API_KEY` (Value: your Google AI Studio Gemini API key).
+   - `BASE_SEPOLIA_RPC` (Value: `https://sepolia.base.org` or your dedicated RPC provider).
+   - `NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS` (Value: `0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f`).
+4. **Trigger a Redeployment:** Environment variables take effect during the build process. After configuring or changing `SCRAPERAPI_KEY`, trigger a new deployment or push a commit so the server runtime picks up the new environment configuration.
+5. **Security Notice:** Do **NOT** prefix `SCRAPERAPI_KEY` or `GEMINI_API_KEY` with `NEXT_PUBLIC_`. Intora ensures these keys are accessed strictly in server-side Route Handlers and never leaked to client bundles.
 
 ---
 

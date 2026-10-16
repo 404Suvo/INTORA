@@ -4,6 +4,7 @@ import {
   DEFAULT_BASE_SEPOLIA_RPC,
   getRegistryContractAddress,
 } from "@/lib/contract-config";
+import { isScraperApiConfigured } from "@/lib/scraperapi";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,11 @@ export async function GET() {
       gemini: {
         configured: hasGeminiApiKey,
         model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      },
+      scraperapi: {
+        configured: isScraperApiConfigured(),
+        status: isScraperApiConfigured() ? "configured" : "missing_key",
+        endpoint: "https://api.scraperapi.com",
       },
       blockchain: {
         network: "Base Sepolia",

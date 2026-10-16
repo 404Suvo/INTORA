@@ -1,6 +1,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
 import { POST } from "../app/api/plan/generate/route";
+import { GET as searchGET } from "../app/api/products/search/route";
+import { GET as asinGET } from "../app/api/products/[asin]/route";
+import { GET as healthGET } from "../app/api/health/route";
 
 describe("API Route: POST /api/plan/generate", () => {
   it("returns 400 if prompt is missing or whitespace", async () => {
@@ -317,5 +320,67 @@ describe("API Route: POST /api/plan/generate", () => {
         delete process.env.SCRAPERAPI_KEY;
       }
     }
+  });
+
+  describe("Product Routes & Health Check: Missing SCRAPERAPI_KEY Handling", () => {
+    it("GET /api/products/search returns 503 without substituting mock products when key is missing", async () => {
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      delete process.env.SCRAPERAPI_KEY;
+      try {
+        const req = new Request("http://localhost:3000/api/products/search?q=laptop");
+        const res = await searchGET(req);
+        assert.strictEqual(res.status, 503);
+        const data = await res.json();
+        assert.strictEqual(data.success, false);
+        assert.strictEqual(data.errorCode, "SCRAPERAPI_KEY_MISSING");
+        assert.ok(data.error?.includes("SCRAPERAPI_KEY"));
+        assert.ok(data.disclaimer?.includes("No fabricated mock data substituted"));
+        assert.ok(data.hint?.includes("Vercel"));
+      } finally {
+        if (originalKey !== undefined) process.env.SCRAPERAPI_KEY = originalKey;
+      }
+    });
+
+    it("GET /api/products/[asin] returns 503 without substituting mock products when key is missing", async () => {
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      delete process.env.SCRAPERAPI_KEY;
+      try {
+        const req = new Request("http://localhost:3000/api/products/B09XYZ1234");
+        const res = await asinGET(req, { params: Promise.resolve({ asin: "B09XYZ1234" }) });
+        assert.strictEqual(res.status, 503);
+        const data = await res.json();
+        assert.strictEqual(data.success, false);
+        assert.strictEqual(data.errorCode, "SCRAPERAPI_KEY_MISSING");
+        assert.ok(data.error?.includes("SCRAPERAPI_KEY"));
+        assert.ok(data.disclaimer?.includes("No mock data substituted"));
+        assert.ok(data.hint?.includes("Vercel"));
+      } finally {
+        if (originalKey !== undefined) process.env.SCRAPERAPI_KEY = originalKey;
+      }
+    });
+
+    it("GET /api/health safely reflects ScraperAPI configuration state without leaking keys", async () => {
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      try {
+        // Case A: Missing key
+        delete process.env.SCRAPERAPI_KEY;
+        const resMissing = await healthGET();
+        const dataMissing = await resMissing.json();
+        assert.strictEqual(dataMissing.services.scraperapi.configured, false);
+        assert.strictEqual(dataMissing.services.scraperapi.status, "missing_key");
+
+        // Case B: Configured key
+        process.env.SCRAPERAPI_KEY = "dummy_configured_key_1234";
+        const resConfigured = await healthGET();
+        const dataConfigured = await resConfigured.json();
+        assert.strictEqual(dataConfigured.services.scraperapi.configured, true);
+        assert.strictEqual(dataConfigured.services.scraperapi.status, "configured");
+        const serialized = JSON.stringify(dataConfigured);
+        assert.ok(!serialized.includes("dummy_configured_key_1234"), "Must never leak key in health check");
+      } finally {
+        if (originalKey !== undefined) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
   });
 });

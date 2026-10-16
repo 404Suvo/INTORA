@@ -20,6 +20,9 @@ import {
   ScraperApiSearchItem,
   sanitizeErrorMessage,
   getScraperApiTimeoutMs,
+  checkScraperApiConfig,
+  isScraperApiConfigured,
+  getScraperApiKey,
 } from "../lib/scraperapi";
 import { getDemoFallbackPlan } from "../lib/stubs";
 import {
@@ -209,6 +212,103 @@ describe("ScraperAPI Amazon India Integration Tests", () => {
       await new Promise((r) => setTimeout(r, 25));
       const expired = monitor.getCache("short_ttl_key");
       assert.strictEqual(expired, null);
+    });
+  });
+
+  describe("Safe Backend Configuration Checks (SCRAPERAPI_KEY)", () => {
+    it("reports configured=false when SCRAPERAPI_KEY is unset or undefined", () => {
+      const orig = process.env.SCRAPERAPI_KEY;
+      delete process.env.SCRAPERAPI_KEY;
+      try {
+        const config = checkScraperApiConfig();
+        assert.strictEqual(config.configured, false);
+        assert.strictEqual(config.missing, true);
+        assert.ok(config.error?.includes("SCRAPERAPI_KEY"));
+        assert.ok(config.hint?.includes("Vercel"));
+        assert.strictEqual(isScraperApiConfigured(), false);
+      } finally {
+        if (orig !== undefined) process.env.SCRAPERAPI_KEY = orig;
+      }
+    });
+
+    it("reports configured=false when SCRAPERAPI_KEY is empty or whitespace", () => {
+      const orig = process.env.SCRAPERAPI_KEY;
+      try {
+        process.env.SCRAPERAPI_KEY = "   ";
+        const config = checkScraperApiConfig();
+        assert.strictEqual(config.configured, false);
+        assert.strictEqual(config.missing, true);
+        assert.strictEqual(isScraperApiConfigured(), false);
+      } finally {
+        if (orig !== undefined) process.env.SCRAPERAPI_KEY = orig;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("rejects dummy placeholder 'your_scraperapi_key_here' as unconfigured", () => {
+      const orig = process.env.SCRAPERAPI_KEY;
+      try {
+        process.env.SCRAPERAPI_KEY = "your_scraperapi_key_here";
+        const config = checkScraperApiConfig();
+        assert.strictEqual(config.configured, false);
+        assert.strictEqual(config.missing, true);
+        assert.strictEqual(isScraperApiConfigured(), false);
+      } finally {
+        if (orig !== undefined) process.env.SCRAPERAPI_KEY = orig;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("reports configured=true when SCRAPERAPI_KEY is set to a valid non-empty string", () => {
+      const orig = process.env.SCRAPERAPI_KEY;
+      try {
+        process.env.SCRAPERAPI_KEY = "dummy_valid_test_key_12345";
+        const config = checkScraperApiConfig();
+        assert.strictEqual(config.configured, true);
+        assert.strictEqual(config.missing, false);
+        assert.strictEqual(config.error, undefined);
+        assert.strictEqual(isScraperApiConfigured(), true);
+      } finally {
+        if (orig !== undefined) process.env.SCRAPERAPI_KEY = orig;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("getScraperApiKey returns trimmed key when configured and throws ScraperApiKeyMissingError when missing", () => {
+      const orig = process.env.SCRAPERAPI_KEY;
+      try {
+        process.env.SCRAPERAPI_KEY = "  test_valid_key_trim_me  ";
+        const key = getScraperApiKey();
+        assert.strictEqual(key, "test_valid_key_trim_me");
+
+        delete process.env.SCRAPERAPI_KEY;
+        assert.throws(
+          () => getScraperApiKey(),
+          (err: any) =>
+            err instanceof ScraperApiKeyMissingError &&
+            err.statusCode === 503 &&
+            err.errorCode === "SCRAPERAPI_KEY_MISSING" &&
+            err.message.includes("SCRAPERAPI_KEY")
+        );
+      } finally {
+        if (orig !== undefined) process.env.SCRAPERAPI_KEY = orig;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("safe check never executes network requests or leaks secrets in errors", () => {
+      const orig = process.env.SCRAPERAPI_KEY;
+      const secret = "super_secret_scraperapi_key_xyz987";
+      try {
+        process.env.SCRAPERAPI_KEY = secret;
+        const config = checkScraperApiConfig();
+        // The returned status object must NOT contain the secret string anywhere
+        const serialized = JSON.stringify(config);
+        assert.ok(!serialized.includes(secret), "checkScraperApiConfig must never leak the secret key");
+      } finally {
+        if (orig !== undefined) process.env.SCRAPERAPI_KEY = orig;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
     });
   });
 

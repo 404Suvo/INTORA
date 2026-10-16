@@ -6,6 +6,8 @@ import {
   getAmazonProductDetails,
   parsePriceToPaise,
   scraperApiMonitor,
+  ScraperApiKeyMissingError,
+  ScraperApiError,
 } from "@/lib/scraperapi";
 
 export async function GET(
@@ -86,18 +88,37 @@ export async function GET(
         "Prices and product details retrieved live from Amazon India via ScraperAPI. Prices are subject to change on Amazon.in and are not guaranteed at checkout.",
     });
   } catch (err: any) {
-    const message = err.message || "Failed to retrieve Amazon product details.";
-    const status = message.includes("401")
+    const rawMessage = err?.message || "Failed to retrieve Amazon product details.";
+    const isMissingKey =
+      err instanceof ScraperApiKeyMissingError ||
+      err?.errorCode === "SCRAPERAPI_KEY_MISSING" ||
+      err?.statusCode === 503 ||
+      rawMessage.includes("SCRAPERAPI_KEY");
+
+    const status = isMissingKey
+      ? 503
+      : err instanceof ScraperApiError
+      ? err.statusCode
+      : rawMessage.includes("401")
       ? 401
-      : message.includes("403")
+      : rawMessage.includes("403")
       ? 403
-      : message.includes("429")
+      : rawMessage.includes("429")
       ? 429
       : 500;
 
     return NextResponse.json(
       {
-        error: message,
+        success: false,
+        error: rawMessage,
+        errorCode: isMissingKey ? "SCRAPERAPI_KEY_MISSING" : err?.errorCode || "PRODUCT_FAILED",
+        isRetryable: isMissingKey ? false : err?.isRetryable ?? true,
+        userFriendlyMessage: isMissingKey
+          ? "Product search service is temporarily unconfigured. Please configure SCRAPERAPI_KEY in the backend environment."
+          : err?.userFriendlyMessage || rawMessage,
+        hint: isMissingKey
+          ? "Add SCRAPERAPI_KEY to your .env file for local development, or configure SCRAPERAPI_KEY in Vercel Environment Variables and redeploy."
+          : undefined,
         disclaimer: "ScraperAPI product request failed. No mock data substituted.",
       },
       { status }
