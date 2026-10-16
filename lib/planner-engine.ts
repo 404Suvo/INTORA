@@ -19,6 +19,7 @@ import {
   ScraperApiError,
   ScraperApiKeyMissingError,
   sanitizeErrorMessage,
+  getScraperApiTimeoutMs,
 } from "./scraperapi";
 import { generateIntentId } from "./intent-id";
 import { CURRENCY, ShoppingPlan, ShoppingPlanItem, validateBudgetInr } from "./types";
@@ -345,17 +346,22 @@ export async function generateRealShoppingPlan(
   }
 
   // 3. Fetch real products from ScraperAPI concurrently
+  // Limit to at most 2 targeted queries and bounded timeout to stay strictly within account concurrency and serverless limits
   const uniqueQueries = Array.from(
     new Set(searchQueries.map((q) => q.trim()).filter((q) => q.length > 0))
-  ).slice(0, 3);
+  ).slice(0, 2);
 
   const rawResults: any[] = [];
   const errors: any[] = [];
 
+  const engineTimeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 25000);
+  const maxTotalTimeMs = 42000;
+
   const searchPromises = uniqueQueries.map((query) =>
     searchAmazonIndia(query, {
       signal: options.signal,
-      timeoutMs: options.timeoutMs,
+      timeoutMs: engineTimeoutMs,
+      maxTotalTimeMs,
     })
   );
 

@@ -42,17 +42,18 @@ export function AddProductModal({
   if (!isOpen) return null;
 
   const handleSearchLiveAmazon = async () => {
-    if (!search.trim()) return;
+    if (!search.trim() || isSearchingLive) return;
     setIsSearchingLive(true);
     setLiveError(null);
     try {
       const res = await fetch(`/api/products/search?q=${encodeURIComponent(search.trim())}`);
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || `ScraperAPI search error: ${res.status}`);
+        throw new Error(data.userFriendlyMessage || data.error || `ScraperAPI search error: ${res.status}`);
       }
-      if (Array.isArray(data.items) && data.items.length > 0) {
-        registerCatalogProducts(data.items);
+      const products = data.products || data.items || [];
+      if (Array.isArray(products) && products.length > 0) {
+        registerCatalogProducts(products);
       }
     } catch (err: any) {
       console.warn("Live Amazon search error:", err);
@@ -94,14 +95,15 @@ export function AddProductModal({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                disabled={isSearchingLive}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    handleSearchLiveAmazon();
+                    if (!isSearchingLive) handleSearchLiveAmazon();
                   }
                 }}
                 placeholder="Search products by title, keyword, or ASIN..."
-                className="pl-9 h-9 text-xs font-mono bg-background/80 rounded-xl border-white/[0.08]"
+                className="pl-9 h-9 text-xs font-mono bg-background/80 rounded-xl border-white/[0.08] disabled:opacity-60"
               />
             </div>
             <Button

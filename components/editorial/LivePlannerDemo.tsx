@@ -43,6 +43,7 @@ export function LivePlannerDemo({
   );
   const [budget, setBudget] = useState(externalBudget || 3000);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingElapsed, setLoadingElapsed] = useState(0);
   const [apiError, setApiError] = useState<string | null>(null);
   const [structuredError, setStructuredError] = useState<{
     message: string;
@@ -51,6 +52,22 @@ export function LivePlannerDemo({
     isTimeout?: boolean;
   } | null>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  // Track elapsed seconds while searching to show progress
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+    if (isLoading) {
+      setLoadingElapsed(0);
+      timer = setInterval(() => {
+        setLoadingElapsed((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setLoadingElapsed(0);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isLoading]);
 
   // Abort any in-flight requests on component unmount
   useEffect(() => {
@@ -91,6 +108,9 @@ export function LivePlannerDemo({
     budgetOverride?: number,
     preferenceOverride?: UserTradeOffPreference
   ) => {
+    // Prevent duplicate submissions while a search is already running
+    if (isLoading) return;
+
     // Abort previous in-flight request to prevent duplicate/race requests
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -150,9 +170,7 @@ export function LivePlannerDemo({
         isTimeout,
       });
     } finally {
-      if (abortControllerRef.current === controller) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 
@@ -160,6 +178,7 @@ export function LivePlannerDemo({
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    setIsLoading(false);
     const demo = getDemoFallbackPlan(situationPrompt, budget, userPreference);
     const computedHash = await hashPlan(demo);
     setCurrentPlan({
@@ -171,6 +190,7 @@ export function LivePlannerDemo({
   };
 
   const handlePreferenceChange = (newPref: UserTradeOffPreference) => {
+    if (isLoading) return;
     setUserPreference(newPref);
     handleGenerate(situationPrompt, budget, newPref);
   };
@@ -508,7 +528,7 @@ export function LivePlannerDemo({
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Searching Amazon India via ScraperAPI...</span>
+                  <span>Searching Amazon India ({loadingElapsed}s)...</span>
                 </>
               ) : (
                 <>
@@ -517,6 +537,15 @@ export function LivePlannerDemo({
                 </>
               )}
             </button>
+            {isLoading && (
+              <div className="text-[11px] text-zinc-500 text-center animate-pulse pt-1">
+                {loadingElapsed < 8
+                  ? "Extracting intent & querying Amazon India live catalog..."
+                  : loadingElapsed < 20
+                  ? "Retrieving live ASIN pricing, ratings, and stock status..."
+                  : "Finalizing knapsack optimization & verifying constraints..."}
+              </div>
+            )}
           </div>
 
           {/* Right Column: Dynamic Plan Output Card (7 Cols) */}

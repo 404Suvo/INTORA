@@ -45,7 +45,8 @@ export function getScraperApiTimeoutMs(): number {
 }
 
 export const DEFAULT_SCRAPERAPI_TIMEOUT_MS = getScraperApiTimeoutMs();
-export const MAX_SCRAPERAPI_RETRIES = 2; // Up to 2 retries after initial attempt = 3 attempts total
+export const MAX_SCRAPERAPI_RETRIES = 1; // 1 retry after initial attempt = 2 attempts total
+export const DEFAULT_MAX_TOTAL_TIME_MS = 45000; // 45s hard total ceiling for any multi-attempt operation
 
 export interface ScraperApiSearchItem {
   type?: string;
@@ -365,6 +366,7 @@ interface CacheEntry<T> {
 export class ScraperApiMonitor {
   private static instance: ScraperApiMonitor;
   private cache = new Map<string, CacheEntry<any>>();
+  private inFlight = new Map<string, Promise<any>>();
   private ttlMs: number;
   private stats = {
     totalRequests: 0,
@@ -423,6 +425,18 @@ export class ScraperApiMonitor {
     this.set<T>(key, data, customTtlMs);
   }
 
+  getInFlight<T>(key: string): Promise<T> | undefined {
+    return this.inFlight.get(key);
+  }
+
+  setInFlight<T>(key: string, promise: Promise<T>): void {
+    this.inFlight.set(key, promise);
+  }
+
+  deleteInFlight(key: string): void {
+    this.inFlight.delete(key);
+  }
+
   recordRequest(): void {
     this.stats.totalRequests++;
     this.stats.lastRequestTime = new Date().toISOString();
@@ -441,11 +455,13 @@ export class ScraperApiMonitor {
     return {
       ...this.stats,
       cachedEntriesCount: this.cache.size,
+      inFlightCount: this.inFlight.size,
     };
   }
 
   clear(): void {
     this.cache.clear();
+    this.inFlight.clear();
   }
 }
 
@@ -668,260 +684,315 @@ export async function searchAmazonIndia(
         cached: true,
       };
     }
+
+    const inFlight = scraperApiMonitor.getInFlight<{
+      items: ScraperApiSearchItem[];
+      retrievedAt: string;
+      cached: boolean;
+    }>(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
   }
 
-  scraperApiMonitor.recordMiss();
-  scraperApiMonitor.recordRequest();
-
-  const apiKey = getScraperApiKey();
-  const params = new URLSearchParams({
-    api_key: apiKey,
-    query: trimmedQuery,
-    country_code: options.country_code || AMAZON_INDIA_COUNTRY_CODE,
-    tld: options.tld || AMAZON_INDIA_TLD,
-  });
-
-  if (options.page && options.page > 1) {
-    params.set("page", String(options.page));
-  }
-
-  const url = `${AMAZON_SEARCH_ENDPOINT}?${params.toString()}`;
   const timeoutMs = options.timeoutMs ?? getScraperApiTimeoutMs();
   const maxAttempts = options.maxAttempts ?? (1 + MAX_SCRAPERAPI_RETRIES);
-  const maxTotalTimeMs = options.maxTotalTimeMs ?? (timeoutMs * maxAttempts + 15000);
+  const maxTotalTimeMs = options.maxTotalTimeMs ?? DEFAULT_MAX_TOTAL_TIME_MS;
   const startTime = Date.now();
   let lastError: any = null;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const elapsedSoFar = Date.now() - startTime;
-    if (attempt > 1 && options.maxTotalTimeMs && elapsedSoFar >= options.maxTotalTimeMs) {
-      break;
+  const executeSearch = async (): Promise<{
+    items: ScraperApiSearchItem[];
+    retrievedAt: string;
+    cached: boolean;
+  }> => {
+    scraperApiMonitor.recordMiss();
+    scraperApiMonitor.recordRequest();
+
+    const apiKey = getScraperApiKey();
+    const params = new URLSearchParams({
+      api_key: apiKey,
+      query: trimmedQuery,
+      country_code: options.country_code || AMAZON_INDIA_COUNTRY_CODE,
+      tld: options.tld || AMAZON_INDIA_TLD,
+    });
+
+    if (options.page && options.page > 1) {
+      params.set("page", String(options.page));
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const url = `${AMAZON_SEARCH_ENDPOINT}?${params.toString()}`;
 
-    let onExternalAbort: (() => void) | undefined;
-    if (options.signal) {
-      if (options.signal.aborted) {
-        clearTimeout(timeoutId);
-        throw new ScraperApiError("Request was cancelled by client.", 499, AMAZON_SEARCH_ENDPOINT, "CANCELLED", undefined, {
-          errorCode: "REQUEST_CANCELLED",
-          isRetryable: false,
-          userFriendlyMessage: "Request was cancelled.",
-        });
-      }
-      onExternalAbort = () => controller.abort();
-      options.signal.addEventListener("abort", onExternalAbort, { once: true });
-    }
-
-    try {
-      const res = await fetch(url, {
-        method: "GET",
-        signal: controller.signal,
-        headers: { Accept: "application/json" },
-      });
-
-      clearTimeout(timeoutId);
-      if (options.signal && onExternalAbort) {
-        options.signal.removeEventListener("abort", onExternalAbort);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const elapsedSoFar = Date.now() - startTime;
+      if (attempt > 1 && elapsedSoFar >= maxTotalTimeMs) {
+        break;
       }
 
-      if (!res.ok) {
-        let responseBody = "";
-        try {
-          responseBody = await res.text();
-        } catch (_) {}
+      const remainingTime = Math.max(10, maxTotalTimeMs - elapsedSoFar);
+      const attemptTimeoutMs = Math.min(timeoutMs, remainingTime);
 
-        let providerDetail = "";
-        if (responseBody) {
-          try {
-            const parsed = JSON.parse(responseBody);
-            providerDetail = parsed.message || parsed.error || parsed.detail || "";
-          } catch (_) {
-            providerDetail = responseBody.slice(0, 150).trim();
-          }
-        }
-        providerDetail = sanitizeErrorMessage(providerDetail);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), attemptTimeoutMs);
 
-        // 1. Permanent Authentication Errors (401, 403) - DO NOT RETRY
-        if (res.status === 401) {
-          const msg = `ScraperAPI error: 401 Unauthorized. Please verify your SCRAPERAPI_KEY.${providerDetail ? ` (${providerDetail})` : ""}`;
-          const err = new ScraperApiError(msg, 401, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
-            errorCode: "AUTHENTICATION_ERROR",
+      let onExternalAbort: (() => void) | undefined;
+      if (options.signal) {
+        if (options.signal.aborted) {
+          clearTimeout(timeoutId);
+          throw new ScraperApiError("Request was cancelled by client.", 499, AMAZON_SEARCH_ENDPOINT, "CANCELLED", undefined, {
+            errorCode: "REQUEST_CANCELLED",
             isRetryable: false,
-            userFriendlyMessage: "Authentication failed with product search provider. Please verify your SCRAPERAPI_KEY.",
-            elapsedMs: Date.now() - startTime,
+            userFriendlyMessage: "Request was cancelled.",
           });
-          scraperApiMonitor.recordError(err.message);
-          throw err;
         }
-
-        if (res.status === 403) {
-          const msg = `ScraperAPI error: 403 Forbidden. Your plan may have exceeded concurrency or limits.${providerDetail ? ` (${providerDetail})` : ""}`;
-          const err = new ScraperApiError(msg, 403, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
-            errorCode: "FORBIDDEN",
-            isRetryable: false,
-            userFriendlyMessage: "Access forbidden by product search provider. Plan limit or concurrency exceeded.",
-            elapsedMs: Date.now() - startTime,
-          });
-          scraperApiMonitor.recordError(err.message);
-          throw err;
-        }
-
-        // 2. Client Errors (400, 404, 422) - DO NOT RETRY
-        if (res.status === 400 || res.status === 404 || res.status === 422) {
-          const msg = `ScraperAPI client error: ${res.status} ${res.statusText}.${providerDetail ? ` (${providerDetail})` : ""}`;
-          const err = new ScraperApiError(msg, res.status, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
-            errorCode: "CLIENT_ERROR",
-            isRetryable: false,
-            userFriendlyMessage: `Product search returned ${res.status} error. Please check search parameters.`,
-            elapsedMs: Date.now() - startTime,
-          });
-          scraperApiMonitor.recordError(err.message);
-          throw err;
-        }
-
-        // 3. Rate Limit (429) - RETRY WITH EXPONENTIAL BACKOFF / RETRY-AFTER
-        if (res.status === 429) {
-          const retryAfter = res.headers?.get?.("retry-after");
-          const msg = `ScraperAPI error: 429 Too Many Requests. Rate limit reached.${providerDetail ? ` (${providerDetail})` : ""}`;
-          lastError = new ScraperApiError(msg, 429, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
-            errorCode: "RATE_LIMITED",
-            isRetryable: true,
-            userFriendlyMessage: "Amazon India search rate limit reached. Please wait a moment and retry.",
-            elapsedMs: Date.now() - startTime,
-          });
-
-          if (attempt < maxAttempts) {
-            const delayMs = calculateBackoffDelay(attempt, retryAfter, timeoutMs);
-            if (!options.maxTotalTimeMs || Date.now() - startTime + delayMs < options.maxTotalTimeMs) {
-              await new Promise((r) => setTimeout(r, delayMs));
-              continue;
-            }
-          }
-          scraperApiMonitor.recordError(lastError.message);
-          throw lastError;
-        }
-
-        // 4. Server Errors (500, 502, 503, 504) - RETRY WITH EXPONENTIAL BACKOFF
-        if (res.status >= 500) {
-          const retryAfter = res.headers?.get?.("retry-after");
-          const msg = `ScraperAPI error: ${res.status} Server Error. Upstream service failed.${providerDetail ? ` (${providerDetail})` : ""}`;
-          lastError = new ScraperApiError(msg, res.status, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
-            errorCode: "UPSTREAM_ERROR",
-            isRetryable: true,
-            userFriendlyMessage: "Amazon India search service is temporarily unavailable. Please retry.",
-            elapsedMs: Date.now() - startTime,
-          });
-
-          if (attempt < maxAttempts) {
-            const delayMs = calculateBackoffDelay(attempt, retryAfter, timeoutMs);
-            if (!options.maxTotalTimeMs || Date.now() - startTime + delayMs < options.maxTotalTimeMs) {
-              await new Promise((r) => setTimeout(r, delayMs));
-              continue;
-            }
-          }
-          scraperApiMonitor.recordError(lastError.message);
-          throw lastError;
-        }
-
-        const defaultMsg = `ScraperAPI Amazon Search returned status ${res.status} (${res.statusText}).${providerDetail ? ` (${providerDetail})` : ""}`;
-        const err = new ScraperApiError(defaultMsg, res.status, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
-          errorCode: "SEARCH_FAILED",
-          isRetryable: false,
-          userFriendlyMessage: "Live product search returned an unexpected status. Please retry.",
-          elapsedMs: Date.now() - startTime,
-        });
-        scraperApiMonitor.recordError(err.message);
-        throw err;
+        onExternalAbort = () => controller.abort();
+        options.signal.addEventListener("abort", onExternalAbort, { once: true });
       }
 
-      let data: ScraperApiSearchResponse;
       try {
-        data = (await res.json()) as ScraperApiSearchResponse;
-      } catch (jsonErr: any) {
-        const err = new ScraperApiError(
-          "ScraperAPI returned malformed non-JSON response.",
-          502,
-          AMAZON_SEARCH_ENDPOINT,
-          undefined,
-          jsonErr,
-          {
-            errorCode: "MALFORMED_RESPONSE",
-            isRetryable: true,
-            userFriendlyMessage: "ScraperAPI returned an invalid non-JSON response. Please retry.",
-            elapsedMs: Date.now() - startTime,
-          }
-        );
-        scraperApiMonitor.recordError(err.message);
-        throw err;
-      }
-
-      const items = Array.isArray(data?.results) ? data.results : [];
-      scraperApiMonitor.set(cacheKey, items);
-
-      return {
-        items,
-        retrievedAt: new Date().toISOString(),
-        cached: false,
-      };
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (options.signal && onExternalAbort) {
-        options.signal.removeEventListener("abort", onExternalAbort);
-      }
-
-      if (options.signal?.aborted) {
-        throw new ScraperApiError("Request was cancelled by client.", 499, AMAZON_SEARCH_ENDPOINT, "CANCELLED", undefined, {
-          errorCode: "REQUEST_CANCELLED",
-          isRetryable: false,
-          userFriendlyMessage: "Request was cancelled.",
+        const res = await fetch(url, {
+          method: "GET",
+          signal: controller.signal,
+          headers: { Accept: "application/json" },
         });
-      }
 
-      // Permanent auth/missing key errors or client errors should not be retried
-      if (
-        err instanceof ScraperApiKeyMissingError ||
-        (err instanceof ScraperApiError &&
-          (err.statusCode === 401 ||
-            err.statusCode === 403 ||
-            err.statusCode === 400 ||
-            err.statusCode === 404 ||
-            err.statusCode === 422 ||
-            err.statusCode === 499))
-      ) {
-        scraperApiMonitor.recordError(err.message);
-        throw err;
-      }
+        clearTimeout(timeoutId);
+        if (options.signal && onExternalAbort) {
+          options.signal.removeEventListener("abort", onExternalAbort);
+        }
 
-      // Check for Timeout / Abort errors
-      const isTimeout =
-        err.name === "AbortError" ||
-        err.name === "TimeoutError" ||
-        err?.cause?.name === "TimeoutError" ||
-        err?.cause?.name === "AbortError" ||
-        err?.code === "ETIMEDOUT" ||
-        err?.cause?.code === "ETIMEDOUT" ||
-        String(err?.message || "").includes("ETIMEDOUT") ||
-        String(err?.cause?.message || "").includes("ETIMEDOUT");
+        if (!res.ok) {
+          let responseBody = "";
+          try {
+            responseBody = await res.text();
+          } catch (_) {}
 
-      if (isTimeout) {
+          let providerDetail = "";
+          if (responseBody) {
+            try {
+              const parsed = JSON.parse(responseBody);
+              providerDetail = parsed.message || parsed.error || parsed.detail || "";
+            } catch (_) {
+              providerDetail = responseBody.slice(0, 150).trim();
+            }
+          }
+          providerDetail = sanitizeErrorMessage(providerDetail);
+
+          // 1. Permanent Authentication Errors (401, 403) - DO NOT RETRY
+          if (res.status === 401) {
+            const msg = `ScraperAPI error: 401 Unauthorized. Please verify your SCRAPERAPI_KEY.${providerDetail ? ` (${providerDetail})` : ""}`;
+            const err = new ScraperApiError(msg, 401, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
+              errorCode: "AUTHENTICATION_ERROR",
+              isRetryable: false,
+              userFriendlyMessage: "Authentication failed with product search provider. Please verify your SCRAPERAPI_KEY.",
+              elapsedMs: Date.now() - startTime,
+            });
+            scraperApiMonitor.recordError(err.message);
+            throw err;
+          }
+
+          if (res.status === 403) {
+            const msg = `ScraperAPI error: 403 Forbidden. Your plan may have exceeded concurrency or limits.${providerDetail ? ` (${providerDetail})` : ""}`;
+            const err = new ScraperApiError(msg, 403, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
+              errorCode: "FORBIDDEN",
+              isRetryable: false,
+              userFriendlyMessage: "Access forbidden by product search provider. Plan limit or concurrency exceeded.",
+              elapsedMs: Date.now() - startTime,
+            });
+            scraperApiMonitor.recordError(err.message);
+            throw err;
+          }
+
+          // 2. Client Errors (400, 404, 422) - DO NOT RETRY
+          if (res.status === 400 || res.status === 404 || res.status === 422) {
+            const msg = `ScraperAPI client error: ${res.status} ${res.statusText}.${providerDetail ? ` (${providerDetail})` : ""}`;
+            const err = new ScraperApiError(msg, res.status, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
+              errorCode: "CLIENT_ERROR",
+              isRetryable: false,
+              userFriendlyMessage: `Product search returned ${res.status} error. Please check search parameters.`,
+              elapsedMs: Date.now() - startTime,
+            });
+            scraperApiMonitor.recordError(err.message);
+            throw err;
+          }
+
+          // 3. Rate Limit (429) - RETRY WITH EXPONENTIAL BACKOFF / RETRY-AFTER
+          if (res.status === 429) {
+            const retryAfter = res.headers?.get?.("retry-after");
+            const msg = `ScraperAPI error: 429 Too Many Requests. Rate limit reached.${providerDetail ? ` (${providerDetail})` : ""}`;
+            lastError = new ScraperApiError(msg, 429, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
+              errorCode: "RATE_LIMITED",
+              isRetryable: true,
+              userFriendlyMessage: "Amazon India search rate limit reached. Please wait a moment and retry.",
+              elapsedMs: Date.now() - startTime,
+            });
+
+            if (attempt < maxAttempts) {
+              const delayMs = calculateBackoffDelay(attempt, retryAfter, attemptTimeoutMs);
+              const remainingAfter = maxTotalTimeMs - (Date.now() - startTime);
+              if (remainingAfter > delayMs + 10) {
+                await new Promise((r) => setTimeout(r, Math.min(delayMs, remainingAfter - 10)));
+                continue;
+              }
+            }
+            scraperApiMonitor.recordError(lastError.message);
+            throw lastError;
+          }
+
+          // 4. Server Errors (500, 502, 503, 504) - RETRY WITH EXPONENTIAL BACKOFF
+          if (res.status >= 500) {
+            const retryAfter = res.headers?.get?.("retry-after");
+            const msg = `ScraperAPI error: ${res.status} Server Error. Upstream service failed.${providerDetail ? ` (${providerDetail})` : ""}`;
+            lastError = new ScraperApiError(msg, res.status, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
+              errorCode: "UPSTREAM_ERROR",
+              isRetryable: true,
+              userFriendlyMessage: "Amazon India search service is temporarily unavailable. Please retry.",
+              elapsedMs: Date.now() - startTime,
+            });
+
+            if (attempt < maxAttempts) {
+              const delayMs = calculateBackoffDelay(attempt, retryAfter, attemptTimeoutMs);
+              const remainingAfter = maxTotalTimeMs - (Date.now() - startTime);
+              if (remainingAfter > delayMs + 10) {
+                await new Promise((r) => setTimeout(r, Math.min(delayMs, remainingAfter - 10)));
+                continue;
+              }
+            }
+            scraperApiMonitor.recordError(lastError.message);
+            throw lastError;
+          }
+
+          const defaultMsg = `ScraperAPI Amazon Search returned status ${res.status} (${res.statusText}).${providerDetail ? ` (${providerDetail})` : ""}`;
+          const err = new ScraperApiError(defaultMsg, res.status, AMAZON_SEARCH_ENDPOINT, providerDetail, undefined, {
+            errorCode: "SEARCH_FAILED",
+            isRetryable: false,
+            userFriendlyMessage: "Live product search returned an unexpected status. Please retry.",
+            elapsedMs: Date.now() - startTime,
+          });
+          scraperApiMonitor.recordError(err.message);
+          throw err;
+        }
+
+        let data: ScraperApiSearchResponse;
+        try {
+          data = (await res.json()) as ScraperApiSearchResponse;
+        } catch (jsonErr: any) {
+          const err = new ScraperApiError(
+            "ScraperAPI returned malformed non-JSON response.",
+            502,
+            AMAZON_SEARCH_ENDPOINT,
+            undefined,
+            jsonErr,
+            {
+              errorCode: "MALFORMED_RESPONSE",
+              isRetryable: true,
+              userFriendlyMessage: "ScraperAPI returned an invalid non-JSON response. Please retry.",
+              elapsedMs: Date.now() - startTime,
+            }
+          );
+          scraperApiMonitor.recordError(err.message);
+          throw err;
+        }
+
+        const items = Array.isArray(data?.results) ? data.results : [];
+        scraperApiMonitor.set(cacheKey, items);
+
+        return {
+          items,
+          retrievedAt: new Date().toISOString(),
+          cached: false,
+        };
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (options.signal && onExternalAbort) {
+          options.signal.removeEventListener("abort", onExternalAbort);
+        }
+
+        if (options.signal?.aborted) {
+          throw new ScraperApiError("Request was cancelled by client.", 499, AMAZON_SEARCH_ENDPOINT, "CANCELLED", undefined, {
+            errorCode: "REQUEST_CANCELLED",
+            isRetryable: false,
+            userFriendlyMessage: "Request was cancelled.",
+          });
+        }
+
+        // Permanent auth/missing key errors or client errors should not be retried
+        if (
+          err instanceof ScraperApiKeyMissingError ||
+          (err instanceof ScraperApiError &&
+            (err.statusCode === 401 ||
+              err.statusCode === 403 ||
+              err.statusCode === 400 ||
+              err.statusCode === 404 ||
+              err.statusCode === 422 ||
+              err.statusCode === 499))
+        ) {
+          scraperApiMonitor.recordError(err.message);
+          throw err;
+        }
+
+        // Check for Timeout / Abort errors
+        const isTimeout =
+          err.name === "AbortError" ||
+          err.name === "TimeoutError" ||
+          err?.cause?.name === "TimeoutError" ||
+          err?.cause?.name === "AbortError" ||
+          err?.code === "ETIMEDOUT" ||
+          err?.cause?.code === "ETIMEDOUT" ||
+          String(err?.message || "").includes("ETIMEDOUT") ||
+          String(err?.cause?.message || "").includes("ETIMEDOUT");
+
+        if (isTimeout) {
+          const elapsed = Date.now() - startTime;
+          const timeoutMsg = sanitizeErrorMessage(
+            `ScraperAPI request timed out after ${Math.round(attemptTimeoutMs / 1000)} seconds (ETIMEDOUT).`
+          );
+          lastError = new ScraperApiError(timeoutMsg, 504, AMAZON_SEARCH_ENDPOINT, "ETIMEDOUT", err, {
+            errorCode: "PROVIDER_TIMEOUT",
+            isRetryable: true,
+            userFriendlyMessage: "Live product search is taking too long. Please retry.",
+            elapsedMs: elapsed,
+          });
+
+          const remainingAfter = maxTotalTimeMs - (Date.now() - startTime);
+          const minRetryThreshold = Math.min(timeoutMs, 8000);
+          if (attempt < maxAttempts && remainingAfter >= minRetryThreshold) {
+            const delayMs = calculateBackoffDelay(attempt, null, attemptTimeoutMs);
+            if (remainingAfter > delayMs + 10) {
+              await new Promise((r) => setTimeout(r, Math.min(delayMs, remainingAfter - 10)));
+              continue;
+            }
+          }
+
+          scraperApiMonitor.recordError(lastError.message);
+          throw lastError;
+        }
+
+        if (err instanceof ScraperApiError) {
+          scraperApiMonitor.recordError(err.message);
+          throw err;
+        }
+
+        // Network exception (e.g. fetch failed, ECONNRESET, ENOTFOUND)
         const elapsed = Date.now() - startTime;
-        const timeoutMsg = sanitizeErrorMessage(
-          `ScraperAPI request timed out after ${Math.round(timeoutMs / 1000)} seconds (ETIMEDOUT).`
-        );
-        lastError = new ScraperApiError(timeoutMsg, 504, AMAZON_SEARCH_ENDPOINT, "ETIMEDOUT", err, {
-          errorCode: "PROVIDER_TIMEOUT",
+        const cause = err?.cause;
+        const causeDetail = cause?.message || cause?.code || "";
+        const baseDetail = err?.message || "fetch failed";
+        const detailStr = causeDetail ? `${baseDetail} (${causeDetail})` : baseDetail;
+        const safeNetworkMsg = sanitizeErrorMessage(`ScraperAPI network error: ${detailStr}`);
+
+        lastError = new ScraperApiError(safeNetworkMsg, 502, AMAZON_SEARCH_ENDPOINT, causeDetail, err, {
+          errorCode: "NETWORK_ERROR",
           isRetryable: true,
-          userFriendlyMessage: "Live product search is taking too long. Please retry.",
+          userFriendlyMessage: "Network connection to ScraperAPI failed. Please check internet connection and retry.",
           elapsedMs: elapsed,
         });
 
         if (attempt < maxAttempts) {
-          const delayMs = calculateBackoffDelay(attempt, null, timeoutMs);
-          if (!options.maxTotalTimeMs || Date.now() - startTime + delayMs < options.maxTotalTimeMs) {
-            await new Promise((r) => setTimeout(r, delayMs));
+          const delayMs = calculateBackoffDelay(attempt, null, attemptTimeoutMs);
+          const remainingAfter = maxTotalTimeMs - (Date.now() - startTime);
+          if (remainingAfter > delayMs + 10) {
+            await new Promise((r) => setTimeout(r, Math.min(delayMs, remainingAfter - 10)));
             continue;
           }
         }
@@ -929,49 +1000,30 @@ export async function searchAmazonIndia(
         scraperApiMonitor.recordError(lastError.message);
         throw lastError;
       }
+    }
 
-      if (err instanceof ScraperApiError) {
-        scraperApiMonitor.recordError(err.message);
-        throw err;
-      }
-
-      // Network exception (e.g. fetch failed, ECONNRESET, ENOTFOUND)
-      const elapsed = Date.now() - startTime;
-      const cause = err?.cause;
-      const causeDetail = cause?.message || cause?.code || "";
-      const baseDetail = err?.message || "fetch failed";
-      const detailStr = causeDetail ? `${baseDetail} (${causeDetail})` : baseDetail;
-      const safeNetworkMsg = sanitizeErrorMessage(`ScraperAPI network error: ${detailStr}`);
-
-      lastError = new ScraperApiError(safeNetworkMsg, 502, AMAZON_SEARCH_ENDPOINT, causeDetail, err, {
-        errorCode: "NETWORK_ERROR",
+    throw (
+      lastError ||
+      new ScraperApiError("ScraperAPI request failed after retries.", 502, AMAZON_SEARCH_ENDPOINT, undefined, undefined, {
+        errorCode: "SEARCH_FAILED",
         isRetryable: true,
-        userFriendlyMessage: "Network connection to ScraperAPI failed. Please check internet connection and retry.",
-        elapsedMs: elapsed,
-      });
+        userFriendlyMessage: "Live product search failed after retries. Please retry.",
+        elapsedMs: Date.now() - startTime,
+      })
+    );
+  };
 
-      if (attempt < maxAttempts) {
-        const delayMs = calculateBackoffDelay(attempt, null, timeoutMs);
-        if (!options.maxTotalTimeMs || Date.now() - startTime + delayMs < options.maxTotalTimeMs) {
-          await new Promise((r) => setTimeout(r, delayMs));
-          continue;
-        }
-      }
-
-      scraperApiMonitor.recordError(lastError.message);
-      throw lastError;
+  const exec = executeSearch();
+  if (!options.skipCache) {
+    scraperApiMonitor.setInFlight(cacheKey, exec);
+  }
+  try {
+    return await exec;
+  } finally {
+    if (!options.skipCache) {
+      scraperApiMonitor.deleteInFlight(cacheKey);
     }
   }
-
-  throw (
-    lastError ||
-    new ScraperApiError("ScraperAPI request failed after retries.", 502, AMAZON_SEARCH_ENDPOINT, undefined, undefined, {
-      errorCode: "SEARCH_FAILED",
-      isRetryable: true,
-      userFriendlyMessage: "Live product search failed after retries. Please retry.",
-      elapsedMs: Date.now() - startTime,
-    })
-  );
 }
 
 export interface GetAmazonProductDetailsOptions {
@@ -1004,34 +1056,52 @@ export async function getAmazonProductDetails(
         cached: true,
       };
     }
+
+    const inFlight = scraperApiMonitor.getInFlight<{
+      product: ScraperApiProductResponse;
+      retrievedAt: string;
+      cached: boolean;
+    }>(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
   }
 
-  scraperApiMonitor.recordMiss();
-  scraperApiMonitor.recordRequest();
-
-  const apiKey = getScraperApiKey();
-  const params = new URLSearchParams({
-    api_key: apiKey,
-    asin: cleanAsin,
-    country_code: AMAZON_INDIA_COUNTRY_CODE,
-    tld: AMAZON_INDIA_TLD,
-  });
-
-  const url = `${AMAZON_PRODUCT_ENDPOINT}?${params.toString()}`;
   const timeoutMs = options.timeoutMs ?? getScraperApiTimeoutMs();
   const maxAttempts = options.maxAttempts ?? (1 + MAX_SCRAPERAPI_RETRIES);
-  const maxTotalTimeMs = options.maxTotalTimeMs ?? (timeoutMs * maxAttempts + 15000);
+  const maxTotalTimeMs = options.maxTotalTimeMs ?? DEFAULT_MAX_TOTAL_TIME_MS;
   const startTime = Date.now();
   let lastError: any = null;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const elapsedSoFar = Date.now() - startTime;
-    if (attempt > 1 && options.maxTotalTimeMs && elapsedSoFar >= options.maxTotalTimeMs) {
-      break;
-    }
+  const executeProductLookup = async (): Promise<{
+    product: ScraperApiProductResponse;
+    retrievedAt: string;
+    cached: boolean;
+  }> => {
+    scraperApiMonitor.recordMiss();
+    scraperApiMonitor.recordRequest();
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const apiKey = getScraperApiKey();
+    const params = new URLSearchParams({
+      api_key: apiKey,
+      asin: cleanAsin,
+      country_code: AMAZON_INDIA_COUNTRY_CODE,
+      tld: AMAZON_INDIA_TLD,
+    });
+
+    const url = `${AMAZON_PRODUCT_ENDPOINT}?${params.toString()}`;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const elapsedSoFar = Date.now() - startTime;
+      if (attempt > 1 && elapsedSoFar >= maxTotalTimeMs) {
+        break;
+      }
+
+      const remainingTime = Math.max(10, maxTotalTimeMs - elapsedSoFar);
+      const attemptTimeoutMs = Math.min(timeoutMs, remainingTime);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), attemptTimeoutMs);
 
     let onExternalAbort: (() => void) | undefined;
     if (options.signal) {
@@ -1240,22 +1310,57 @@ export async function getAmazonProductDetails(
         String(err?.message || "").includes("ETIMEDOUT") ||
         String(err?.cause?.message || "").includes("ETIMEDOUT");
 
-      if (isTimeout) {
+        if (isTimeout) {
+          const elapsed = Date.now() - startTime;
+          const timeoutMsg = sanitizeErrorMessage(
+            `ScraperAPI product request timed out after ${Math.round(attemptTimeoutMs / 1000)} seconds (ETIMEDOUT).`
+          );
+          lastError = new ScraperApiError(timeoutMsg, 504, AMAZON_PRODUCT_ENDPOINT, "ETIMEDOUT", err, {
+            errorCode: "PROVIDER_TIMEOUT",
+            isRetryable: true,
+            userFriendlyMessage: "Live product lookup is taking too long. Please retry.",
+            elapsedMs: elapsed,
+          });
+
+          const remainingAfter = maxTotalTimeMs - (Date.now() - startTime);
+          const minRetryThreshold = Math.min(timeoutMs, 8000);
+          if (attempt < maxAttempts && remainingAfter >= minRetryThreshold) {
+            const delayMs = calculateBackoffDelay(attempt, null, attemptTimeoutMs);
+            if (remainingAfter > delayMs + 10) {
+              await new Promise((r) => setTimeout(r, Math.min(delayMs, remainingAfter - 10)));
+              continue;
+            }
+          }
+
+          scraperApiMonitor.recordError(lastError.message);
+          throw lastError;
+        }
+
+        if (err instanceof ScraperApiError) {
+          scraperApiMonitor.recordError(err.message);
+          throw err;
+        }
+
+        // Network exception (e.g. fetch failed, ECONNRESET, ENOTFOUND)
         const elapsed = Date.now() - startTime;
-        const timeoutMsg = sanitizeErrorMessage(
-          `ScraperAPI product request timed out after ${Math.round(timeoutMs / 1000)} seconds (ETIMEDOUT).`
-        );
-        lastError = new ScraperApiError(timeoutMsg, 504, AMAZON_PRODUCT_ENDPOINT, "ETIMEDOUT", err, {
-          errorCode: "PROVIDER_TIMEOUT",
+        const cause = err?.cause;
+        const causeDetail = cause?.message || cause?.code || "";
+        const baseDetail = err?.message || "fetch failed";
+        const detailStr = causeDetail ? `${baseDetail} (${causeDetail})` : baseDetail;
+        const safeNetworkMsg = sanitizeErrorMessage(`ScraperAPI product network error: ${detailStr}`);
+
+        lastError = new ScraperApiError(safeNetworkMsg, 502, AMAZON_PRODUCT_ENDPOINT, causeDetail, err, {
+          errorCode: "NETWORK_ERROR",
           isRetryable: true,
-          userFriendlyMessage: "Live product lookup is taking too long. Please retry.",
+          userFriendlyMessage: "Network connection to product detail service failed. Please retry.",
           elapsedMs: elapsed,
         });
 
         if (attempt < maxAttempts) {
-          const delayMs = calculateBackoffDelay(attempt, null, timeoutMs);
-          if (!options.maxTotalTimeMs || Date.now() - startTime + delayMs < options.maxTotalTimeMs) {
-            await new Promise((r) => setTimeout(r, delayMs));
+          const delayMs = calculateBackoffDelay(attempt, null, attemptTimeoutMs);
+          const remainingAfter = maxTotalTimeMs - (Date.now() - startTime);
+          if (remainingAfter > delayMs + 10) {
+            await new Promise((r) => setTimeout(r, Math.min(delayMs, remainingAfter - 10)));
             continue;
           }
         }
@@ -1263,49 +1368,30 @@ export async function getAmazonProductDetails(
         scraperApiMonitor.recordError(lastError.message);
         throw lastError;
       }
+    }
 
-      if (err instanceof ScraperApiError) {
-        scraperApiMonitor.recordError(err.message);
-        throw err;
-      }
-
-      // Network exception (e.g. fetch failed, ECONNRESET, ENOTFOUND)
-      const elapsed = Date.now() - startTime;
-      const cause = err?.cause;
-      const causeDetail = cause?.message || cause?.code || "";
-      const baseDetail = err?.message || "fetch failed";
-      const detailStr = causeDetail ? `${baseDetail} (${causeDetail})` : baseDetail;
-      const safeNetworkMsg = sanitizeErrorMessage(`ScraperAPI product network error: ${detailStr}`);
-
-      lastError = new ScraperApiError(safeNetworkMsg, 502, AMAZON_PRODUCT_ENDPOINT, causeDetail, err, {
-        errorCode: "NETWORK_ERROR",
+    throw (
+      lastError ||
+      new ScraperApiError("ScraperAPI product request failed after retries.", 502, AMAZON_PRODUCT_ENDPOINT, undefined, undefined, {
+        errorCode: "PRODUCT_FAILED",
         isRetryable: true,
-        userFriendlyMessage: "Network connection to product detail service failed. Please retry.",
-        elapsedMs: elapsed,
-      });
+        userFriendlyMessage: "Product detail request failed after retries. Please retry.",
+        elapsedMs: Date.now() - startTime,
+      })
+    );
+  };
 
-      if (attempt < maxAttempts) {
-        const delayMs = calculateBackoffDelay(attempt, null, timeoutMs);
-        if (!options.maxTotalTimeMs || Date.now() - startTime + delayMs < options.maxTotalTimeMs) {
-          await new Promise((r) => setTimeout(r, delayMs));
-          continue;
-        }
-      }
-
-      scraperApiMonitor.recordError(lastError.message);
-      throw lastError;
+  const exec = executeProductLookup();
+  if (!options.skipCache) {
+    scraperApiMonitor.setInFlight(cacheKey, exec);
+  }
+  try {
+    return await exec;
+  } finally {
+    if (!options.skipCache) {
+      scraperApiMonitor.deleteInFlight(cacheKey);
     }
   }
-
-  throw (
-    lastError ||
-    new ScraperApiError("ScraperAPI product request failed after retries.", 502, AMAZON_PRODUCT_ENDPOINT, undefined, undefined, {
-      errorCode: "PRODUCT_FAILED",
-      isRetryable: true,
-      userFriendlyMessage: "Product detail request failed after retries. Please retry.",
-      elapsedMs: Date.now() - startTime,
-    })
-  );
 }
 
 /**

@@ -43,6 +43,7 @@ export default function FullPlannerPage() {
   );
   const [budget, setBudget] = useState(currentPlan.budget);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingElapsed, setLoadingElapsed] = useState(0);
   const [apiError, setApiError] = useState<string | null>(null);
   const [structuredError, setStructuredError] = useState<{
     message: string;
@@ -51,6 +52,22 @@ export default function FullPlannerPage() {
     isTimeout?: boolean;
   } | null>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  // Track elapsed seconds while searching to show progress
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+    if (isLoading) {
+      setLoadingElapsed(0);
+      timer = setInterval(() => {
+        setLoadingElapsed((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setLoadingElapsed(0);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isLoading]);
 
   // Clean up any pending in-flight request when component unmounts
   useEffect(() => {
@@ -251,6 +268,9 @@ export default function FullPlannerPage() {
   };
 
   const handleGenerate = async (prefOverride?: UserTradeOffPreference) => {
+    // Prevent duplicate submissions while a search is already running
+    if (isLoading) return;
+
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -310,9 +330,7 @@ export default function FullPlannerPage() {
         isTimeout,
       });
     } finally {
-      if (abortControllerRef.current === controller) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 
@@ -320,6 +338,7 @@ export default function FullPlannerPage() {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    setIsLoading(false);
     const demo = getDemoFallbackPlan(situationPrompt, budget, userPreference);
     const computedHash = await hashPlan(demo);
     setCurrentPlan({
@@ -331,6 +350,7 @@ export default function FullPlannerPage() {
   };
 
   const handlePreferenceChange = (newPref: UserTradeOffPreference) => {
+    if (isLoading) return;
     setUserPreference(newPref);
     handleGenerate(newPref);
   };
@@ -775,7 +795,7 @@ export default function FullPlannerPage() {
               {isLoading ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Searching Amazon India via ScraperAPI...</span>
+                  <span>Searching Amazon India ({loadingElapsed}s)...</span>
                 </>
               ) : (
                 <>
@@ -784,6 +804,15 @@ export default function FullPlannerPage() {
                 </>
               )}
             </button>
+            {isLoading && (
+              <div className="text-[11px] text-zinc-500 text-center animate-pulse pt-1">
+                {loadingElapsed < 8
+                  ? "Extracting intent & querying Amazon India live catalog..."
+                  : loadingElapsed < 20
+                  ? "Retrieving live ASIN pricing, ratings, and stock status..."
+                  : "Finalizing knapsack optimization & verifying constraints..."}
+              </div>
+            )}
           </div>
 
           {/* Right Product Workspace (8 Cols) */}

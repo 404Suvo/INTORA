@@ -12,6 +12,7 @@ import {
   mapSearchItemToCatalogItem,
   mapSearchItemToProductItem,
   ScraperApiMonitor,
+  scraperApiMonitor,
   searchAmazonIndia,
   getAmazonProductDetails,
   getAmazonOffersIfAvailable,
@@ -837,6 +838,269 @@ describe("ScraperAPI Amazon India Integration Tests", () => {
       assert.ok(demoPlan.totalAmount <= demoPlan.budget);
       assert.strictEqual(demoPlan.validation.budgetCompliant, true);
       assert.ok(demoPlan.items.length > 0);
+    });
+  });
+
+  describe("Provider Diagnostics & Resilience Mock Tests (Root Cause & Timeout Fix)", () => {
+    it("Mocked Success: parses 200 OK with valid schema, items, and pricing", async () => {
+      const originalFetch = globalThis.fetch;
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      try {
+        process.env.SCRAPERAPI_KEY = "test_valid_diagnostic_key";
+        globalThis.fetch = async () =>
+          new Response(
+            JSON.stringify({
+              results: [
+                {
+                  asin: "B0DIAGTEST01",
+                  name: "Classmate Spiral Notebook 6-Pack",
+                  price: 340,
+                  price_string: "₹340.00",
+                  stars: 4.6,
+                  total_reviews: 2150,
+                  image: "https://m.media-amazon.com/images/I/notebook.jpg",
+                },
+              ],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+
+        const res = await searchAmazonIndia("spiral notebook", { skipCache: true, timeoutMs: 2000 });
+        assert.strictEqual(res.items.length, 1);
+        assert.strictEqual(res.items[0].asin, "B0DIAGTEST01");
+        assert.strictEqual(res.items[0].price, 340);
+        assert.strictEqual(res.cached, false);
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalKey) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("Mocked Timeout (ETIMEDOUT): enforces bounded maxTotalTimeMs and does not hang for 70 seconds", async () => {
+      const originalFetch = globalThis.fetch;
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      const start = Date.now();
+
+      try {
+        process.env.SCRAPERAPI_KEY = "test_valid_diagnostic_key";
+        globalThis.fetch = async () => {
+          const err: any = new Error("The operation was aborted");
+          err.name = "AbortError";
+          throw err;
+        };
+
+        await assert.rejects(
+          async () => {
+            // timeoutMs 25ms, maxTotalTimeMs 40ms
+            await searchAmazonIndia("timeout query", { skipCache: true, timeoutMs: 25, maxTotalTimeMs: 40 });
+          },
+          (err: any) => {
+            assert.strictEqual(err.statusCode, 504);
+            assert.strictEqual(err.errorCode, "PROVIDER_TIMEOUT");
+            assert.strictEqual(err.userFriendlyMessage, "Live product search is taking too long. Please retry.");
+            return true;
+          }
+        );
+
+        const elapsed = Date.now() - start;
+        assert.ok(elapsed < 1000, `Execution should finish within timeout bounds, took ${elapsed}ms`);
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalKey) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("Mocked Rate Limiting (429): retries with backoff and fails with RATE_LIMITED if exhausted", async () => {
+      const originalFetch = globalThis.fetch;
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      let attempts = 0;
+
+      try {
+        process.env.SCRAPERAPI_KEY = "test_valid_diagnostic_key";
+        globalThis.fetch = async () => {
+          attempts++;
+          return new Response(JSON.stringify({ message: "Request rate limit exceeded" }), {
+            status: 429,
+            headers: { "Content-Type": "application/json", "Retry-After": "0" },
+          });
+        };
+
+        await assert.rejects(
+          async () => {
+            await searchAmazonIndia("rate limit query", { skipCache: true, timeoutMs: 30, maxAttempts: 2 });
+          },
+          (err: any) => {
+            assert.strictEqual(err.statusCode, 429);
+            assert.strictEqual(err.errorCode, "RATE_LIMITED");
+            assert.strictEqual(attempts, 2);
+            return true;
+          }
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalKey) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("Mocked Authentication Failure (401): fails immediately without retrying and masks secret", async () => {
+      const originalFetch = globalThis.fetch;
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      let attempts = 0;
+
+      try {
+        process.env.SCRAPERAPI_KEY = "super_secret_test_key_xyz";
+        globalThis.fetch = async () => {
+          attempts++;
+          return new Response(JSON.stringify({ error: "Unauthorized access with key super_secret_test_key_xyz" }), {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          });
+        };
+
+        await assert.rejects(
+          async () => {
+            await searchAmazonIndia("auth fail query", { skipCache: true, timeoutMs: 50, maxAttempts: 3 });
+          },
+          (err: any) => {
+            assert.strictEqual(err.statusCode, 401);
+            assert.strictEqual(err.errorCode, "AUTHENTICATION_ERROR");
+            assert.strictEqual(err.isRetryable, false);
+            assert.ok(!err.message.includes("super_secret_test_key_xyz"));
+            assert.strictEqual(attempts, 1, "Must never retry 401");
+            return true;
+          }
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalKey) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("Mocked Forbidden (403): fails immediately on plan/concurrency limits without retrying", async () => {
+      const originalFetch = globalThis.fetch;
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      let attempts = 0;
+
+      try {
+        process.env.SCRAPERAPI_KEY = "test_key_forbidden";
+        globalThis.fetch = async () => {
+          attempts++;
+          return new Response(JSON.stringify({ error: "Concurrent request limit exceeded" }), {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          });
+        };
+
+        await assert.rejects(
+          async () => {
+            await searchAmazonIndia("forbidden query", { skipCache: true, timeoutMs: 50, maxAttempts: 3 });
+          },
+          (err: any) => {
+            assert.strictEqual(err.statusCode, 403);
+            assert.strictEqual(err.errorCode, "FORBIDDEN");
+            assert.strictEqual(err.isRetryable, false);
+            assert.strictEqual(attempts, 1, "Must never retry 403");
+            return true;
+          }
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalKey) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("Mocked Malformed Data: returns 502 MALFORMED_RESPONSE on non-JSON response", async () => {
+      const originalFetch = globalThis.fetch;
+      const originalKey = process.env.SCRAPERAPI_KEY;
+
+      try {
+        process.env.SCRAPERAPI_KEY = "test_key_malformed";
+        globalThis.fetch = async () =>
+          new Response("<html><body>502 Bad Gateway</body></html>", {
+            status: 200,
+            headers: { "Content-Type": "text/html" },
+          });
+
+        await assert.rejects(
+          async () => {
+            await searchAmazonIndia("malformed test", { skipCache: true, timeoutMs: 50 });
+          },
+          (err: any) => {
+            assert.strictEqual(err.statusCode, 502);
+            assert.strictEqual(err.errorCode, "MALFORMED_RESPONSE");
+            return true;
+          }
+        );
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalKey) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("Mocked Empty Results: returns empty items array without fabricating mock data", async () => {
+      const originalFetch = globalThis.fetch;
+      const originalKey = process.env.SCRAPERAPI_KEY;
+
+      try {
+        process.env.SCRAPERAPI_KEY = "test_key_empty";
+        globalThis.fetch = async () =>
+          new Response(JSON.stringify({ results: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+
+        const res = await searchAmazonIndia("empty results test", { skipCache: true, timeoutMs: 50 });
+        assert.ok(Array.isArray(res.items));
+        assert.strictEqual(res.items.length, 0);
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalKey) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
+    });
+
+    it("In-Flight Promise Coalescing: concurrent identical queries share a single fetch invocation", async () => {
+      const originalFetch = globalThis.fetch;
+      const originalKey = process.env.SCRAPERAPI_KEY;
+      let networkCalls = 0;
+
+      try {
+        process.env.SCRAPERAPI_KEY = "test_key_coalesce";
+        scraperApiMonitor.clear();
+
+        globalThis.fetch = async () => {
+          networkCalls++;
+          await new Promise((r) => setTimeout(r, 20));
+          return new Response(
+            JSON.stringify({
+              results: [{ asin: "B0COALESCE1", name: "Shared Item", price: 199 }],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        };
+
+        // Fire 2 concurrent identical queries
+        const [res1, res2] = await Promise.all([
+          searchAmazonIndia("coalesce item", { skipCache: false, timeoutMs: 200 }),
+          searchAmazonIndia("coalesce item", { skipCache: false, timeoutMs: 200 }),
+        ]);
+
+        assert.strictEqual(networkCalls, 1, "Concurrent identical queries must execute only 1 network fetch");
+        assert.strictEqual(res1.items.length, 1);
+        assert.strictEqual(res2.items.length, 1);
+        assert.strictEqual(res1.items[0].asin, "B0COALESCE1");
+        assert.strictEqual(res2.items[0].asin, "B0COALESCE1");
+      } finally {
+        globalThis.fetch = originalFetch;
+        if (originalKey) process.env.SCRAPERAPI_KEY = originalKey;
+        else delete process.env.SCRAPERAPI_KEY;
+      }
     });
   });
 
