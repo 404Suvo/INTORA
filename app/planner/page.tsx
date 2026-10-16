@@ -313,8 +313,8 @@ export default function FullPlannerPage() {
       if (err?.name === "AbortError" || controller.signal.aborted) {
         return;
       }
-      console.error("Plan generation error:", err);
       const errMsg = err?.userFriendlyMessage || err?.message || String(err);
+      console.warn("[Full Planner Notice]", errMsg);
       const isTimeout =
         err?.errorCode === "PROVIDER_TIMEOUT" ||
         err?.statusCode === 504 ||

@@ -491,6 +491,20 @@ export function validateBudgetIntent(
 // 5. GEMINI-POWERED INTENT INTERPRETER
 // ============================================================================
 
+let geminiQuotaCooldownUntil = 0;
+
+export function recordGeminiQuotaExhaustion(): void {
+  geminiQuotaCooldownUntil = Date.now() + 15 * 60 * 1000; // 15-minute circuit breaker
+}
+
+export function isGeminiQuotaExhausted(): boolean {
+  return Date.now() < geminiQuotaCooldownUntil;
+}
+
+export function resetGeminiQuotaStatus(): void {
+  geminiQuotaCooldownUntil = 0;
+}
+
 export interface InterpretBudgetIntentOptions {
   skipGemini?: boolean;
   timeoutMs?: number;
@@ -513,7 +527,7 @@ export async function interpretBudgetIntent(
 
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
-  if (apiKey && !options.skipGemini) {
+  if (apiKey && !options.skipGemini && !isGeminiQuotaExhausted()) {
     const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
     try {
       const ai = new GoogleGenAI({ apiKey });
@@ -603,7 +617,16 @@ Output strictly a JSON object conforming to this schema without markdown fences:
           return validation.intent;
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      const lower = String(err?.message || "").toLowerCase();
+      if (
+        lower.includes("generatecontent_free_tier_requests") ||
+        lower.includes("generaterequestsperday") ||
+        lower.includes("quota exceeded") ||
+        lower.includes("resource_exhausted")
+      ) {
+        recordGeminiQuotaExhaustion();
+      }
       console.warn(
         "[Budget Intent] Gemini interpretation fallback:",
         sanitizeErrorMessage(err instanceof Error ? err.message : String(err))

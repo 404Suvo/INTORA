@@ -39,6 +39,8 @@ import {
   rankCandidatesForSingleProductMax,
   widenPriceTolerance,
   calculateTargetPriceDelta,
+  recordGeminiQuotaExhaustion,
+  isGeminiQuotaExhausted,
   type UserBudgetIntent,
   type PriceTolerance,
 } from "./budget-intent";
@@ -236,7 +238,7 @@ export async function extractAmazonSearchQueries(
 ): Promise<string[]> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
-  if (apiKey && !options.skipGemini) {
+  if (apiKey && !options.skipGemini && !isGeminiQuotaExhausted()) {
     const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
     const maxGeminiAttempts = 3;
 
@@ -279,6 +281,19 @@ Output ONLY a JSON array of search query strings (e.g. ["stainless steel water b
       } catch (err: any) {
         const isTransient = isTransientGeminiError(err);
         const safeErr = sanitizeErrorMessage(err?.message || String(err));
+        const lowerMsg = (err?.message || "").toLowerCase();
+
+        // If daily quota or free-tier exhaustion is reported, trip circuit breaker and avoid looping
+        if (
+          lowerMsg.includes("generatecontent_free_tier_requests") ||
+          lowerMsg.includes("generaterequestsperday") ||
+          lowerMsg.includes("quota exceeded") ||
+          lowerMsg.includes("resource_exhausted")
+        ) {
+          recordGeminiQuotaExhaustion();
+          console.warn("[Planner Engine] Gemini daily quota limit encountered. Switching to instant deterministic extraction.");
+          break;
+        }
 
         if (!isTransient || attempt >= maxGeminiAttempts) {
           console.warn(
@@ -354,8 +369,8 @@ export async function generateRealShoppingPlan(
   const rawResults: any[] = [];
   const errors: any[] = [];
 
-  const engineTimeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 25000);
-  const maxTotalTimeMs = 42000;
+  const engineTimeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 32000);
+  const maxTotalTimeMs = 45000;
 
   const searchPromises = uniqueQueries.map((query) =>
     searchAmazonIndia(query, {

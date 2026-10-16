@@ -153,8 +153,8 @@ export function LivePlannerDemo({
       if (err?.name === "AbortError" || controller.signal.aborted) {
         return; // User initiated a new request or unmounted
       }
-      console.error("Plan generation error:", err);
       const errMsg = err?.userFriendlyMessage || err?.message || String(err);
+      console.warn("[Live Planner Notice]", errMsg);
       const isTimeout =
         err?.errorCode === "PROVIDER_TIMEOUT" ||
         err?.statusCode === 504 ||
