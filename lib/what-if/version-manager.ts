@@ -73,6 +73,7 @@ export function toCanonicalShoppingPlan(
   );
 
   const nowSec = Math.floor(Date.now() / 1000);
+  const expiry = (plan as any).expiry ?? (nowSec + expirySeconds);
 
   return {
     schemaVersion: "1.0.0",
@@ -82,7 +83,7 @@ export function toCanonicalShoppingPlan(
     budgetMinor,
     items,
     totalMinor,
-    expiry: nowSec + expirySeconds,
+    expiry,
   };
 }
 
@@ -118,6 +119,7 @@ export function recordPlanVersion(
 
   // 1. Convert to canonical ShoppingPlan and compute cryptographic hash
   const canonicalPlan = toCanonicalShoppingPlan(plan, assignedVersion);
+  (plan as any).expiry = canonicalPlan.expiry;
   const { canonicalString, planHash } = computePlanHash(canonicalPlan);
 
   // 2. Also register in core server plan storage (plans.json) for cross-compatibility

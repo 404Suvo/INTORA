@@ -57,6 +57,7 @@ export async function POST(req: Request) {
       location,
       preference,
       signal: req.signal,
+      timeoutMs: 25000,
     });
 
     return NextResponse.json({

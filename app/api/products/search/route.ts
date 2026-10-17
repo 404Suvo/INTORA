@@ -30,6 +30,9 @@ export async function GET(req: Request) {
     const { items, retrievedAt, cached } = await searchAmazonIndia(q, {
       page,
       category,
+      signal: req.signal,
+      timeoutMs: 20000,
+      maxTotalTimeMs: 25000,
     });
 
     // Map to catalog items and register them in the dynamic catalog
@@ -44,16 +47,24 @@ export async function GET(req: Request) {
       .map((item) => mapSearchItemToProductItem(item, category || "Amazon India", undefined, retrievedAt))
       .filter((item): item is NonNullable<typeof item> => item !== null);
 
-    return NextResponse.json({
-      query: q,
-      totalReturned: items.length,
-      validProductsCount: products.length,
-      products,
-      retrievedAt,
-      cached,
-      stats: scraperApiMonitor.getStats(),
-      disclaimer: "Prices and stock status retrieved live from Amazon India via ScraperAPI. Prices are subject to change on Amazon.in and are not guaranteed at checkout.",
-    });
+    return NextResponse.json(
+      {
+        query: q,
+        totalReturned: items.length,
+        validProductsCount: products.length,
+        products,
+        retrievedAt,
+        cached,
+        stats: scraperApiMonitor.getStats(),
+        disclaimer:
+          "Prices and stock status retrieved live from Amazon India via ScraperAPI. Prices are subject to change on Amazon.in and are not guaranteed at checkout.",
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (err: any) {
     const rawMessage = err?.message || "Failed to search Amazon India via ScraperAPI.";
     const isMissingKey =

@@ -35,15 +35,17 @@ async function runDiagnostic() {
   const params = new URLSearchParams({
     api_key: apiKey,
     query,
-    country_code: AMAZON_INDIA_COUNTRY_CODE,
     tld: AMAZON_INDIA_TLD,
   });
+  if (process.env.SCRAPERAPI_COUNTRY_CODE) {
+    params.set("country_code", process.env.SCRAPERAPI_COUNTRY_CODE);
+  }
 
   const fullUrl = `${AMAZON_SEARCH_ENDPOINT}?${params.toString()}`;
   const maskedUrl = sanitizeErrorMessage(fullUrl);
   console.log("2. Endpoint:", maskedUrl);
 
-  const timeoutMs = 35000;
+  const timeoutMs = 20000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 

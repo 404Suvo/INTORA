@@ -360,17 +360,19 @@ export async function generateRealShoppingPlan(
     }
   }
 
-  // 3. Fetch real products from ScraperAPI concurrently
-  // Limit to at most 2 targeted queries and bounded timeout to stay strictly within account concurrency and serverless limits
+  // 3. Fetch real products from ScraperAPI
+  // For single-product intents, 1 targeted query returns 40-80 products from Amazon India.
+  // For multi-item baskets (total_basket_cap), fetch up to 2 distinct queries concurrently.
+  const maxQueries = budgetIntent.budgetMode === "total_basket_cap" ? 2 : 1;
   const uniqueQueries = Array.from(
     new Set(searchQueries.map((q) => q.trim()).filter((q) => q.length > 0))
-  ).slice(0, 2);
+  ).slice(0, maxQueries);
 
   const rawResults: any[] = [];
   const errors: any[] = [];
 
-  const engineTimeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 32000);
-  const maxTotalTimeMs = 45000;
+  const engineTimeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 20000);
+  const maxTotalTimeMs = 28000;
 
   const searchPromises = uniqueQueries.map((query) =>
     searchAmazonIndia(query, {

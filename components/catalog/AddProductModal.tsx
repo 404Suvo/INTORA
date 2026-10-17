@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Check,
   Package,
@@ -38,15 +38,33 @@ export function AddProductModal({
   const [selectedCat, setSelectedCat] = useState("all");
   const [isSearchingLive, setIsSearchingLive] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   if (!isOpen) return null;
 
   const handleSearchLiveAmazon = async () => {
     if (!search.trim() || isSearchingLive) return;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsSearchingLive(true);
     setLiveError(null);
     try {
-      const res = await fetch(`/api/products/search?q=${encodeURIComponent(search.trim())}`);
+      const res = await fetch(`/api/products/search?q=${encodeURIComponent(search.trim())}`, {
+        signal: controller.signal,
+      });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.userFriendlyMessage || data.error || `ScraperAPI search error: ${res.status}`);
@@ -56,6 +74,9 @@ export function AddProductModal({
         registerCatalogProducts(products);
       }
     } catch (err: any) {
+      if (err?.name === "AbortError" || controller.signal.aborted) {
+        return;
+      }
       console.warn("Live Amazon search error:", err);
       setLiveError(err.message || "Failed to search Amazon India live.");
     } finally {

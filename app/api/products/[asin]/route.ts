@@ -25,7 +25,11 @@ export async function GET(
   const cleanAsin = asin.trim();
 
   try {
-    const { product, retrievedAt, cached } = await getAmazonProductDetails(cleanAsin);
+    const { product, retrievedAt, cached } = await getAmazonProductDetails(cleanAsin, {
+      signal: req.signal,
+      timeoutMs: 20000,
+      maxTotalTimeMs: 25000,
+    });
 
     // Parse pricing
     let priceResult = parsePriceToPaise(product.pricing, product.list_price?.toString());
@@ -89,6 +93,11 @@ export async function GET(
       stats: scraperApiMonitor.getStats(),
       disclaimer:
         "Prices and product details retrieved live from Amazon India via ScraperAPI. Prices are subject to change on Amazon.in and are not guaranteed at checkout.",
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      },
     });
   } catch (err: any) {
     const rawMessage = err?.message || "Failed to retrieve Amazon product details.";

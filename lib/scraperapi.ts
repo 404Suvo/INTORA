@@ -46,7 +46,7 @@ export function getScraperApiTimeoutMs(): number {
 
 export const DEFAULT_SCRAPERAPI_TIMEOUT_MS = getScraperApiTimeoutMs();
 export const MAX_SCRAPERAPI_RETRIES = 1; // 1 retry after initial attempt = 2 attempts total
-export const DEFAULT_MAX_TOTAL_TIME_MS = 45000; // 45s hard total ceiling for any multi-attempt operation
+export const DEFAULT_MAX_TOTAL_TIME_MS = 28000; // 28s hard total ceiling for any multi-attempt operation
 
 export interface ScraperApiSearchItem {
   type?: string;
@@ -695,7 +695,7 @@ export async function searchAmazonIndia(
     }
   }
 
-  const timeoutMs = options.timeoutMs ?? getScraperApiTimeoutMs();
+  const timeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 20000);
   const maxAttempts = options.maxAttempts ?? (1 + MAX_SCRAPERAPI_RETRIES);
   const maxTotalTimeMs = options.maxTotalTimeMs ?? DEFAULT_MAX_TOTAL_TIME_MS;
   const startTime = Date.now();
@@ -713,9 +713,13 @@ export async function searchAmazonIndia(
     const params = new URLSearchParams({
       api_key: apiKey,
       query: trimmedQuery,
-      country_code: options.country_code || AMAZON_INDIA_COUNTRY_CODE,
       tld: options.tld || AMAZON_INDIA_TLD,
     });
+
+    const countryCode = options.country_code ?? process.env.SCRAPERAPI_COUNTRY_CODE;
+    if (countryCode) {
+      params.set("country_code", countryCode);
+    }
 
     if (options.page && options.page > 1) {
       params.set("page", String(options.page));
@@ -1067,7 +1071,7 @@ export async function getAmazonProductDetails(
     }
   }
 
-  const timeoutMs = options.timeoutMs ?? getScraperApiTimeoutMs();
+  const timeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 20000);
   const maxAttempts = options.maxAttempts ?? (1 + MAX_SCRAPERAPI_RETRIES);
   const maxTotalTimeMs = options.maxTotalTimeMs ?? DEFAULT_MAX_TOTAL_TIME_MS;
   const startTime = Date.now();
@@ -1085,9 +1089,13 @@ export async function getAmazonProductDetails(
     const params = new URLSearchParams({
       api_key: apiKey,
       asin: cleanAsin,
-      country_code: AMAZON_INDIA_COUNTRY_CODE,
       tld: AMAZON_INDIA_TLD,
     });
+
+    const countryCode = (options as any)?.country_code ?? process.env.SCRAPERAPI_COUNTRY_CODE;
+    if (countryCode) {
+      params.set("country_code", countryCode);
+    }
 
     const url = `${AMAZON_PRODUCT_ENDPOINT}?${params.toString()}`;
 
@@ -1409,13 +1417,17 @@ export async function getAmazonOffersIfAvailable(
     const params = new URLSearchParams({
       api_key: apiKey,
       asin: cleanAsin,
-      country_code: AMAZON_INDIA_COUNTRY_CODE,
       tld: AMAZON_INDIA_TLD,
     });
 
+    const countryCode = process.env.SCRAPERAPI_COUNTRY_CODE;
+    if (countryCode) {
+      params.set("country_code", countryCode);
+    }
+
     const url = `${AMAZON_OFFERS_ENDPOINT}?${params.toString()}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 30000);
+    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 20000);
 
     const res = await fetch(url, {
       method: "GET",
