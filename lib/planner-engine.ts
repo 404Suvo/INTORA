@@ -34,13 +34,16 @@ import {
   type UserTradeOffPreference,
 } from "./trade-off-engine";
 import {
+  recordGeminiQuotaExhaustion,
+  isGeminiQuotaExhausted,
+  getGeminiQuotaStatus,
+} from "./gemini-quota";
+import {
   interpretBudgetIntent,
   rankCandidatesForSingleProductTarget,
   rankCandidatesForSingleProductMax,
   widenPriceTolerance,
   calculateTargetPriceDelta,
-  recordGeminiQuotaExhaustion,
-  isGeminiQuotaExhausted,
   type UserBudgetIntent,
   type PriceTolerance,
 } from "./budget-intent";
@@ -227,20 +230,61 @@ export function deriveDeterministicSearchQueries(prompt: string): string[] {
   return safeQueries.length > 0 ? safeQueries : ["daily utility essentials"];
 }
 
+// ============================================================================
+// CACHED & OPTIMIZED QUERY EXTRACTION
+// ============================================================================
+
+interface CachedQueryEntry {
+  queries: string[];
+  cachedAt: number;
+}
+
+const queryExtractionCache = new Map<string, CachedQueryEntry>();
+const QUERY_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export function clearQueryExtractionCache(): void {
+  queryExtractionCache.clear();
+}
+
 /**
  * Uses Gemini to parse a natural language shopping situation into 1-4 targeted Amazon India search queries.
- * Handles 503, 429, and transient network errors with bounded exponential-backoff retries and jitter.
- * Falls back to deterministic extraction if Gemini is unavailable or retries are exhausted.
+ * Handles 503, 429, and transient network errors with circuit-breaking and deterministic fallback.
+ * Employs in-memory query caching and deterministic bypass to prevent Gemini quota exhaustion.
  */
 export async function extractAmazonSearchQueries(
   prompt: string,
   options: PlanGenerationOptions = {}
 ): Promise<string[]> {
+  const cleanPrompt = (prompt || "").trim();
+  if (!cleanPrompt) {
+    return ["daily utility essentials"];
+  }
+
+  // 1. Check in-memory query cache
+  const cacheKey = cleanPrompt.toLowerCase();
+  const cached = queryExtractionCache.get(cacheKey);
+  if (cached && Date.now() - cached.cachedAt < QUERY_CACHE_TTL_MS) {
+    return cached.queries;
+  }
+
+  // 2. High-confidence deterministic bypass:
+  // If the prompt matches known domain templates (e.g. rose bouquet, earbuds, water bottle, laptop, etc.),
+  // derive targeted search queries deterministically without calling Gemini.
+  const deterministicQueries = deriveDeterministicSearchQueries(cleanPrompt);
+  const isGeneric =
+    deterministicQueries.length === 1 && deterministicQueries[0] === "daily utility essentials";
+
+  if (!isGeneric || options.skipGemini || isGeminiQuotaExhausted()) {
+    queryExtractionCache.set(cacheKey, { queries: deterministicQueries, cachedAt: Date.now() });
+    return deterministicQueries;
+  }
+
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
+  // 3. Fall back to Gemini only for unmapped/free-form prompts when quota is available
   if (apiKey && !options.skipGemini && !isGeminiQuotaExhausted()) {
     const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
-    const maxGeminiAttempts = 3;
+    const maxGeminiAttempts = 2;
 
     for (let attempt = 1; attempt <= maxGeminiAttempts; attempt++) {
       try {
@@ -272,46 +316,48 @@ Output ONLY a JSON array of search query strings (e.g. ["stainless steel water b
               .map((q) => String(q).trim())
               .filter((q) => q.length > 1);
             if (cleanQueries.length > 0) {
-              return Array.from(new Set(cleanQueries)).slice(0, 4);
+              const unique = Array.from(new Set(cleanQueries)).slice(0, 4);
+              queryExtractionCache.set(cacheKey, { queries: unique, cachedAt: Date.now() });
+              return unique;
             }
           }
         }
-        // If response is not JSON array, break and use deterministic fallback
         break;
       } catch (err: any) {
         const isTransient = isTransientGeminiError(err);
         const safeErr = sanitizeErrorMessage(err?.message || String(err));
         const lowerMsg = (err?.message || "").toLowerCase();
 
-        // If daily quota or free-tier exhaustion is reported, trip circuit breaker and avoid looping
+        // 429 Quota Exhaustion: trip circuit breaker immediately and avoid repeating retries
         if (
           lowerMsg.includes("generatecontent_free_tier_requests") ||
           lowerMsg.includes("generaterequestsperday") ||
           lowerMsg.includes("quota exceeded") ||
-          lowerMsg.includes("resource_exhausted")
+          lowerMsg.includes("resource_exhausted") ||
+          err?.status === 429
         ) {
-          recordGeminiQuotaExhaustion();
+          recordGeminiQuotaExhaustion(err);
           console.warn("[Planner Engine] Gemini daily quota limit encountered. Switching to instant deterministic extraction.");
           break;
         }
 
         if (!isTransient || attempt >= maxGeminiAttempts) {
           console.warn(
-            `[Planner Engine] Gemini query extraction fallback after attempt ${attempt}/${maxGeminiAttempts} (transient: ${isTransient}):`,
+            `[Planner Engine] Gemini query extraction fallback after attempt ${attempt}/${maxGeminiAttempts}:`,
             safeErr
           );
           break;
         }
 
-        // Bounded exponential backoff with jitter
-        const delayMs = Math.min(2000, Math.pow(2, attempt - 1) * 400 + Math.random() * 200);
+        const delayMs = Math.min(1000, Math.pow(2, attempt - 1) * 300);
         await new Promise((r) => setTimeout(r, delayMs));
       }
     }
   }
 
-  // Deterministic fallback derived from user request
-  return deriveDeterministicSearchQueries(prompt);
+  // 4. Deterministic fallback
+  queryExtractionCache.set(cacheKey, { queries: deterministicQueries, cachedAt: Date.now() });
+  return deterministicQueries;
 }
 
 /**
@@ -345,42 +391,57 @@ export async function generateRealShoppingPlan(
     skipGemini: options.skipGemini,
   });
 
-  // 2. Extract targeted Amazon search terms
-  const searchQueries = await extractAmazonSearchQueries(prompt, options);
+  // 2. Determine targeted Amazon search terms
+  // For single-product intents, synthesize exactly ONE focused query from the target product and required specs.
+  // For multi-item baskets, retrieve complementary query candidates.
+  let uniqueQueries: string[] = [];
 
-  // If single-product intent, prioritize focused query for target product and must-have specs
   if (budgetIntent.budgetMode !== "total_basket_cap" && budgetIntent.targetProduct) {
     const specsStr = budgetIntent.mustHaveRequirements.join(" ");
     const focusedQuery = `${budgetIntent.targetProduct} ${specsStr}`.trim();
-    if (focusedQuery && !searchQueries.includes(focusedQuery)) {
-      searchQueries.unshift(focusedQuery);
-    }
-    if (!searchQueries.includes(budgetIntent.targetProduct)) {
-      searchQueries.push(budgetIntent.targetProduct);
+    uniqueQueries = [focusedQuery || budgetIntent.targetProduct];
+  } else {
+    const searchQueries = await extractAmazonSearchQueries(prompt, options);
+    const candidateQueries = Array.from(
+      new Set(searchQueries.map((q) => q.trim()).filter((q) => q.length > 0))
+    );
+
+    // Deduplicate subset/redundant queries (e.g. avoid running both "mehendi outfit" and "mehendi")
+    const filteredQueries = candidateQueries.filter((q, idx) => {
+      const qLower = q.toLowerCase();
+      return !candidateQueries.some((other, oIdx) => {
+        if (idx === oIdx) return false;
+        const otherLower = other.toLowerCase();
+        // If 'other' is a more specific superset query, don't also run the generic substring
+        return otherLower.includes(qLower) && otherLower.length > qLower.length;
+      });
+    });
+
+    uniqueQueries = filteredQueries.slice(0, 2);
+    if (uniqueQueries.length === 0) {
+      uniqueQueries = [budgetIntent.targetProduct || "daily utility essentials"];
     }
   }
 
   // 3. Fetch real products from ScraperAPI
-  // For single-product intents, 1 targeted query returns 40-80 products from Amazon India.
-  // For multi-item baskets (total_basket_cap), fetch up to 2 distinct queries concurrently.
-  const maxQueries = budgetIntent.budgetMode === "total_basket_cap" ? 2 : 1;
-  const uniqueQueries = Array.from(
-    new Set(searchQueries.map((q) => q.trim()).filter((q) => q.length > 0))
-  ).slice(0, maxQueries);
-
   const rawResults: any[] = [];
   const errors: any[] = [];
 
-  const engineTimeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 20000);
-  const maxTotalTimeMs = 28000;
+  const engineTimeoutMs = options.timeoutMs ?? getScraperApiTimeoutMs();
+  const maxTotalTimeMs = Math.max(engineTimeoutMs + 4000, 28000);
 
-  const searchPromises = uniqueQueries.map((query) =>
-    searchAmazonIndia(query, {
+  const searchPromises = uniqueQueries.map(async (query, idx) => {
+    if (idx > 0) {
+      // Stagger multi-query dispatches by 150ms to prevent socket connect collision on api.scraperapi.com
+      const staggerDelay = idx * 150;
+      await new Promise((resolve) => setTimeout(resolve, staggerDelay));
+    }
+    return searchAmazonIndia(query, {
       signal: options.signal,
       timeoutMs: engineTimeoutMs,
       maxTotalTimeMs,
-    })
-  );
+    });
+  });
 
   const settled = await Promise.allSettled(searchPromises);
 
@@ -400,6 +461,13 @@ export async function generateRealShoppingPlan(
       );
     }
   });
+
+  // Preserve valid partial results when safe
+  if (rawResults.length > 0 && errors.length > 0) {
+    console.info(
+      `[Planner Engine] Preserving ${rawResults.length} partial search results despite ${errors.length} query timeout/error.`
+    );
+  }
 
   if (rawResults.length === 0) {
     if (errors.length > 0) {

@@ -76,8 +76,16 @@ export async function generatePlan(
     try {
       res = await fetch("/api/plan/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, budget: roundedBudget, preference: options.preference }),
+        headers: {
+          "Content-Type": "application/json",
+          "Prefer": "respond-async",
+        },
+        body: JSON.stringify({
+          prompt,
+          budget: roundedBudget,
+          preference: options.preference,
+          async: true,
+        }),
         signal: options.signal,
       });
     } catch (networkErr: any) {
@@ -94,6 +102,68 @@ export async function generatePlan(
       data = await res.json();
     } catch {
       throw new Error(`Server returned a non-JSON response (Status: ${res.status}).`);
+    }
+
+    // 1.1 Handle 202 Accepted asynchronous background job polling
+    if (res.status === 202 && data.checkUrl) {
+      const checkUrl = data.checkUrl;
+      const pollStart = Date.now();
+      const maxWaitMs = options.timeoutMs || 75000;
+
+      while (Date.now() - pollStart < maxWaitMs) {
+        if (options.signal?.aborted) {
+          const abortErr = new Error("Request was cancelled.");
+          (abortErr as any).name = "AbortError";
+          throw abortErr;
+        }
+
+        await new Promise((r) => setTimeout(r, 1800));
+
+        let pollRes: Response;
+        try {
+          pollRes = await fetch(checkUrl, { signal: options.signal });
+        } catch (pollErr: any) {
+          if (pollErr?.name === "AbortError" || options.signal?.aborted) {
+            const abortErr = new Error("Request was cancelled.");
+            (abortErr as any).name = "AbortError";
+            throw abortErr;
+          }
+          throw new Error(`Failed to poll plan job: ${pollErr?.message || String(pollErr)}`);
+        }
+
+        let pollData: any;
+        try {
+          pollData = await pollRes.json();
+        } catch {
+          continue;
+        }
+
+        if (pollData.status === "completed" && pollData.plan) {
+          return pollData.plan;
+        }
+
+        if (pollData.status === "failed" || (!pollRes.ok && pollRes.status !== 200)) {
+          const errMsg =
+            pollData.userFriendlyMessage ||
+            pollData.error ||
+            `Background plan generation failed (Status: ${pollRes.status}).`;
+          const err = new Error(errMsg);
+          (err as any).statusCode = pollRes.status;
+          (err as any).errorCode = pollData.errorCode || "SEARCH_FAILED";
+          (err as any).isRetryable = pollData.isRetryable ?? false;
+          (err as any).userFriendlyMessage = pollData.userFriendlyMessage || errMsg;
+          (err as any).rawError = pollData.error;
+          (err as any).details = pollData.details;
+          throw err;
+        }
+      }
+
+      const timeoutErr = new Error("Background plan generation timed out after 75 seconds.");
+      (timeoutErr as any).statusCode = 504;
+      (timeoutErr as any).errorCode = "PROVIDER_TIMEOUT";
+      (timeoutErr as any).isRetryable = true;
+      (timeoutErr as any).userFriendlyMessage = "Live product search is taking longer than expected. Please retry.";
+      throw timeoutErr;
     }
 
     if (!res.ok || !data.success) {

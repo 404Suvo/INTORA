@@ -467,6 +467,10 @@ export class ScraperApiMonitor {
 
 export const scraperApiMonitor = new ScraperApiMonitor(30);
 
+export function clearScraperApiCache(): void {
+  ScraperApiMonitor.getInstance().clear();
+}
+
 export interface ScraperApiConfigStatus {
   configured: boolean;
   missing: boolean;
@@ -695,7 +699,7 @@ export async function searchAmazonIndia(
     }
   }
 
-  const timeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 20000);
+  const timeoutMs = options.timeoutMs ?? getScraperApiTimeoutMs();
   const maxAttempts = options.maxAttempts ?? (1 + MAX_SCRAPERAPI_RETRIES);
   const maxTotalTimeMs = options.maxTotalTimeMs ?? DEFAULT_MAX_TOTAL_TIME_MS;
   const startTime = Date.now();
@@ -948,8 +952,13 @@ export async function searchAmazonIndia(
 
         if (isTimeout) {
           const elapsed = Date.now() - startTime;
+          const elapsedSec = (elapsed / 1000).toFixed(1);
+          const configuredSec = Math.round(attemptTimeoutMs / 1000);
+          const isEarlySocketHiccup = elapsed < attemptTimeoutMs - 500;
           const timeoutMsg = sanitizeErrorMessage(
-            `ScraperAPI request timed out after ${Math.round(attemptTimeoutMs / 1000)} seconds (ETIMEDOUT).`
+            isEarlySocketHiccup
+              ? `ScraperAPI connection timed out after ${elapsedSec}s (socket connect error: ETIMEDOUT).`
+              : `ScraperAPI request timed out after ${elapsedSec}s (timeout limit: ${configuredSec}s) (ETIMEDOUT).`
           );
           lastError = new ScraperApiError(timeoutMsg, 504, AMAZON_SEARCH_ENDPOINT, "ETIMEDOUT", err, {
             errorCode: "PROVIDER_TIMEOUT",
@@ -959,7 +968,7 @@ export async function searchAmazonIndia(
           });
 
           const remainingAfter = maxTotalTimeMs - (Date.now() - startTime);
-          const minRetryThreshold = Math.min(timeoutMs, 8000);
+          const minRetryThreshold = isEarlySocketHiccup ? 3000 : Math.min(timeoutMs, 8000);
           if (attempt < maxAttempts && remainingAfter >= minRetryThreshold) {
             const delayMs = calculateBackoffDelay(attempt, null, attemptTimeoutMs);
             if (remainingAfter > delayMs + 10) {
@@ -1071,7 +1080,7 @@ export async function getAmazonProductDetails(
     }
   }
 
-  const timeoutMs = options.timeoutMs ?? Math.min(getScraperApiTimeoutMs(), 20000);
+  const timeoutMs = options.timeoutMs ?? getScraperApiTimeoutMs();
   const maxAttempts = options.maxAttempts ?? (1 + MAX_SCRAPERAPI_RETRIES);
   const maxTotalTimeMs = options.maxTotalTimeMs ?? DEFAULT_MAX_TOTAL_TIME_MS;
   const startTime = Date.now();
@@ -1320,8 +1329,13 @@ export async function getAmazonProductDetails(
 
         if (isTimeout) {
           const elapsed = Date.now() - startTime;
+          const elapsedSec = (elapsed / 1000).toFixed(1);
+          const configuredSec = Math.round(attemptTimeoutMs / 1000);
+          const isEarlySocketHiccup = elapsed < attemptTimeoutMs - 500;
           const timeoutMsg = sanitizeErrorMessage(
-            `ScraperAPI product request timed out after ${Math.round(attemptTimeoutMs / 1000)} seconds (ETIMEDOUT).`
+            isEarlySocketHiccup
+              ? `ScraperAPI product connection timed out after ${elapsedSec}s (socket connect error: ETIMEDOUT).`
+              : `ScraperAPI product request timed out after ${elapsedSec}s (timeout limit: ${configuredSec}s) (ETIMEDOUT).`
           );
           lastError = new ScraperApiError(timeoutMsg, 504, AMAZON_PRODUCT_ENDPOINT, "ETIMEDOUT", err, {
             errorCode: "PROVIDER_TIMEOUT",
@@ -1331,7 +1345,7 @@ export async function getAmazonProductDetails(
           });
 
           const remainingAfter = maxTotalTimeMs - (Date.now() - startTime);
-          const minRetryThreshold = Math.min(timeoutMs, 8000);
+          const minRetryThreshold = isEarlySocketHiccup ? 3000 : Math.min(timeoutMs, 8000);
           if (attempt < maxAttempts && remainingAfter >= minRetryThreshold) {
             const delayMs = calculateBackoffDelay(attempt, null, attemptTimeoutMs);
             if (remainingAfter > delayMs + 10) {

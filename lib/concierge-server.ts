@@ -53,7 +53,44 @@ CORE GUIDELINES:
    - Do not make up products or prices that are not in the catalog.
 `.trim();
 
+import {
+  isGeminiQuotaExhausted,
+  recordGeminiQuotaExhaustion,
+  isGeminiQuotaError,
+} from "@/lib/gemini-quota";
+
 export async function processConciergeChat(messages: Array<{ sender: string; text: string }>) {
+  const latestMessage = messages[messages.length - 1]?.text || "";
+  const lowerInput = latestMessage.toLowerCase();
+
+  // If Gemini quota is known to be exhausted, provide an immediate catalog-grounded concierge response
+  if (isGeminiQuotaExhausted()) {
+    const matched = PRODUCT_CATALOG.filter((p) =>
+      lowerInput.includes(p.name.toLowerCase()) ||
+      lowerInput.includes(p.category.toLowerCase()) ||
+      lowerInput.includes(p.id.toLowerCase())
+    );
+
+    const productListText = matched.length > 0
+      ? `Here are the matching items from our verified catalog:\n` +
+        matched.slice(0, 5).map((p) => `• **${p.name}** (₹${p.priceMinor / 100}) - ${p.description}`).join("\n") +
+        `\n\nWould you like me to curate a customized bundle with these items for your budget?`
+      : `Welcome to Intora! I am here to help you find verified products, design budget-compliant bundles, and secure cryptographic commitments on Base Sepolia. How can I assist you with your shopping plans today?`;
+
+    return {
+      text: `Welcome to Intora! Our live AI chat is currently operating in low-overhead mode.\n\n${productListText}`,
+      products: matched.length > 0 ? matched.map((p) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        priceRupees: p.priceMinor / 100,
+        inStock: p.inStock,
+        unit: p.unit,
+        description: p.description,
+      })) : undefined,
+    };
+  }
+
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not configured.");
   }
@@ -85,10 +122,36 @@ export async function processConciergeChat(messages: Array<{ sender: string; tex
     } catch (err: any) {
       lastError = err;
       console.warn(`[Concierge Service] Model '${model}' failed:`, err?.message || err);
+
+      if (isGeminiQuotaError(err)) {
+        recordGeminiQuotaExhaustion(err);
+        // Do not cycle through remaining models on project-level quota exhaustion
+        break;
+      }
     }
   }
 
   if (!responseText) {
+    // If quota was exhausted during the call, return fallback rather than 500 error
+    if (isGeminiQuotaExhausted() || (lastError && isGeminiQuotaError(lastError))) {
+      const matched = PRODUCT_CATALOG.filter((p) =>
+        lowerInput.includes(p.name.toLowerCase()) ||
+        lowerInput.includes(p.category.toLowerCase()) ||
+        lowerInput.includes(p.id.toLowerCase())
+      );
+      return {
+        text: `Welcome to Intora! Our AI service is currently running at free-tier capacity. We are still able to help you explore our verified catalog items and plan your budget.`,
+        products: matched.length > 0 ? matched.map((p) => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          priceRupees: p.priceMinor / 100,
+          inStock: p.inStock,
+          unit: p.unit,
+          description: p.description,
+        })) : undefined,
+      };
+    }
     throw lastError || new Error("Failed to receive response from Gemini models.");
   }
 

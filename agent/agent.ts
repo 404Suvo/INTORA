@@ -9,6 +9,12 @@
  */
 import { GoogleGenAI, type Content, type Part } from "@google/genai";
 import { tools } from "./tools";
+import {
+  isGeminiQuotaExhausted,
+  createAiQuotaError,
+  recordGeminiQuotaExhaustion,
+  isGeminiQuotaError,
+} from "@/lib/gemini-quota";
 
 export const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
 const MAX_STEPS = 6;
@@ -54,6 +60,10 @@ export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string })
   }));
   const steps: Step[] = [];
 
+  if (isGeminiQuotaExhausted()) {
+    throw createAiQuotaError("Autonomous agent planning");
+  }
+
   const configuredModel = process.env.GEMINI_MODEL || MODEL;
   const modelsToTry = Array.from(new Set([configuredModel, ...CANDIDATE_MODELS]));
 
@@ -83,15 +93,20 @@ export async function runAgent(history: ChatMessage[], ctx: { baseUrl: string })
       } catch (err: any) {
         lastError = err;
         const msg = String(err?.message || "");
-        const isQuotaOrNotFound =
-          msg.includes("429") ||
-          msg.includes("RESOURCE_EXHAUSTED") ||
+
+        // 429 / RESOURCE_EXHAUSTED is project-wide, not model-specific
+        if (isGeminiQuotaError(err)) {
+          recordGeminiQuotaExhaustion(err);
+          throw createAiQuotaError("Autonomous agent planning");
+        }
+
+        const isNotFoundOrUnavailable =
           msg.includes("404") ||
           msg.includes("NOT_FOUND") ||
           msg.includes("503");
 
-        if (isQuotaOrNotFound && currentModel !== modelsToTry[modelsToTry.length - 1]) {
-          console.warn(`[Agent] Gemini model '${currentModel}' unavailable/exhausted. Backing off 350ms before fallback...`);
+        if (isNotFoundOrUnavailable && currentModel !== modelsToTry[modelsToTry.length - 1]) {
+          console.warn(`[Agent] Gemini model '${currentModel}' unavailable. Backing off 350ms before fallback...`);
           await new Promise((res) => setTimeout(res, 350));
           continue;
         }

@@ -1,5 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
-import { isTransientGeminiError } from "@/lib/planner-engine";
+import {
+  isTransientGeminiError,
+  isGeminiQuotaExhausted,
+  recordGeminiQuotaExhaustion,
+  isGeminiQuotaError,
+} from "@/lib/gemini-quota";
 import { sanitizeErrorMessage } from "@/lib/scraperapi";
 import { ScenarioInterpretationContext, ValidatedScenario } from "./types";
 import { validateScenario } from "./validator";
@@ -253,7 +258,7 @@ export async function interpretScenarioRequest(
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   let parsedRaw: Partial<ValidatedScenario> | null = null;
 
-  if (apiKey && !options.skipGemini) {
+  if (apiKey && !options.skipGemini && !isGeminiQuotaExhausted()) {
     const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
     const maxAttempts = 2;
 
@@ -330,6 +335,12 @@ Output ONLY valid JSON with keys:
           break;
         }
       } catch (err: any) {
+        if (isGeminiQuotaError(err)) {
+          recordGeminiQuotaExhaustion(err);
+          console.warn("[What-If Interpreter] Gemini quota exhausted. Falling back to deterministic scenario parser.");
+          break;
+        }
+
         const isTransient = isTransientGeminiError(err);
         if (!isTransient || attempt >= maxAttempts) {
           console.warn(

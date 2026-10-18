@@ -14,6 +14,23 @@ import { GoogleGenAI } from "@google/genai";
 import { CURRENCY, MAX_BUDGET_INR, MIN_BUDGET_INR, validateBudgetInr } from "./types";
 import { sanitizeErrorMessage } from "./scraperapi";
 import {
+  recordGeminiQuotaExhaustion,
+  isGeminiQuotaExhausted,
+  resetGeminiQuotaStatus,
+  getGeminiQuotaStatus,
+  parseGeminiRetryDelay,
+  createAiQuotaError,
+} from "./gemini-quota";
+
+export {
+  recordGeminiQuotaExhaustion,
+  isGeminiQuotaExhausted,
+  resetGeminiQuotaStatus,
+  getGeminiQuotaStatus,
+  parseGeminiRetryDelay,
+  createAiQuotaError,
+};
+import {
   evaluateProductSuitability,
   type NormalizedProduct,
   type UserRequirement,
@@ -49,10 +66,12 @@ export const UserBudgetIntentSchema = z.object({
   maximumPrice: z.number().positive().optional(),
   currency: z.literal(CURRENCY).default(CURRENCY),
   includeAccessories: z.boolean().default(false),
+  mustHaveAccessories: z.boolean().optional().default(false),
   priceTolerance: PriceToleranceSchema,
   mustHaveRequirements: z.array(z.string()).default([]),
   rawPrompt: z.string(),
   explanation: z.string(),
+  ambiguityQuestion: z.string().optional(),
 });
 export type UserBudgetIntent = z.infer<typeof UserBudgetIntentSchema>;
 
@@ -227,8 +246,44 @@ const SINGLE_PRODUCT_TARGET_KEYWORDS = [
 ];
 
 /**
+ * Extracts numeric rupee amount from text, supporting diverse Indian numbering formats:
+ * - "1 lakh" / "1.5 lakh" / "1 lac" -> 100000 / 150000
+ * - "2 lakhs" -> 200000
+ * - "80k" / "50k" -> 80000 / 50000
+ * - "1,00,000" / "5,000" / "3000" -> 100000 / 5000 / 3000
+ */
+export function parseRupeeAmount(str: string): number | undefined {
+  if (!str) return undefined;
+  const clean = str.trim().toLowerCase();
+
+  // 1. Lakhs / Lacs (e.g. "1 lakh", "1.5 lakh", "2 lakhs", "1 lac", "1.25 lacs")
+  const lakhMatch = clean.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:lakhs?|lacs?|lac|lakh)\b/i);
+  if (lakhMatch) {
+    const val = parseFloat(lakhMatch[1]);
+    if (!isNaN(val) && val > 0) return Math.round(val * 100000);
+  }
+
+  // 2. Thousands with 'k' (e.g. "50k", "80k", "100k")
+  const kMatch = clean.match(/([0-9]+(?:\.[0-9]+)?)\s*k\b/i);
+  if (kMatch) {
+    const val = parseFloat(kMatch[1]);
+    if (!isNaN(val) && val > 0) return Math.round(val * 1000);
+  }
+
+  // 3. Formatted numbers with commas or standard digits (e.g. "1,00,000", "5,000", "2000")
+  const numMatch = clean.match(/([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]+)?|[0-9]+(?:\.[0-9]+)?)/);
+  if (numMatch && numMatch[1]) {
+    const cleaned = numMatch[1].replace(/,/g, "");
+    const val = parseFloat(cleaned);
+    if (!isNaN(val) && val > 0) return Math.round(val);
+  }
+
+  return undefined;
+}
+
+/**
  * Extracts explicit rupee constraints (min and max) from prompt text.
- * Handles patterns like "between ₹80,000 and ₹1,10,000", "min ₹50,000", "max ₹1,00,000", "80k to 120k".
+ * Handles patterns like "between ₹80,000 and ₹1,10,000", "min ₹50,000", "max ₹1,00,000", "80k to 1.2 lakh".
  */
 export function extractExplicitPriceBounds(
   prompt: string
@@ -239,75 +294,85 @@ export function extractExplicitPriceBounds(
 
   // Pattern: "between ₹X and ₹Y" or "₹X to ₹Y" or "from ₹X to ₹Y"
   const rangeMatch = text.match(
-    /(?:between|from)?\s*(?:rs\.?|₹|inr)?\s*([0-9]+(?:,[0-9]+)*(?:\s*k)?)\s*(?:and|to|-)\s*(?:rs\.?|₹|inr)?\s*([0-9]+(?:,[0-9]+)*(?:\s*k)?)/i
+    /(?:between|from)?\s*(?:rs\.?|₹|inr)?\s*([0-9]+(?:\.[0-9]+)?(?:,[0-9]+)*(?:\s*(?:lakhs?|lacs?|lac|lakh|k))?)\s*(?:and|to|-)\s*(?:rs\.?|₹|inr)?\s*([0-9]+(?:\.[0-9]+)?(?:,[0-9]+)*(?:\s*(?:lakhs?|lacs?|lac|lakh|k))?)/i
   );
   if (rangeMatch) {
-    const parseVal = (str: string) => {
-      const isK = str.toLowerCase().includes("k");
-      const num = parseFloat(str.replace(/[^0-9.]/g, ""));
-      return isK ? num * 1000 : num;
-    };
-    const v1 = parseVal(rangeMatch[1]);
-    const v2 = parseVal(rangeMatch[2]);
-    if (!isNaN(v1) && !isNaN(v2) && v1 > 0 && v2 > 0) {
+    const v1 = parseRupeeAmount(rangeMatch[1]);
+    const v2 = parseRupeeAmount(rangeMatch[2]);
+    if (v1 !== undefined && v2 !== undefined && v1 > 0 && v2 > 0) {
       explicitMin = Math.min(v1, v2);
       explicitMax = Math.max(v1, v2);
     }
   }
 
-  // Pattern: "at least ₹X" or "min ₹X" or "minimum ₹X"
-  const minMatch = text.match(/(?:at least|minimum|min|above)\s*(?:rs\.?|₹|inr)?\s*([0-9]+(?:,[0-9]+)*(?:\s*k)?)/i);
+  // Pattern: "at least ₹X" or "min ₹X" or "minimum ₹X" or "above ₹X"
+  const minMatch = text.match(
+    /(?:at least|minimum|min|above)\s*(?:rs\.?|₹|inr)?\s*([0-9]+(?:\.[0-9]+)?(?:,[0-9]+)*(?:\s*(?:lakhs?|lacs?|lac|lakh|k))?)/i
+  );
   if (minMatch && explicitMin === undefined) {
-    const isK = minMatch[1].toLowerCase().includes("k");
-    const num = parseFloat(minMatch[1].replace(/[^0-9.]/g, ""));
-    const v = isK ? num * 1000 : num;
-    if (!isNaN(v) && v > 0) explicitMin = v;
+    const v = parseRupeeAmount(minMatch[1]);
+    if (v !== undefined && v > 0) explicitMin = v;
   }
 
-  // Pattern: "at most ₹X" or "max ₹X" or "maximum ₹X" or "under ₹X"
-  const maxMatch = text.match(/(?:at most|maximum|max|under|below|up to)\s*(?:rs\.?|₹|inr)?\s*([0-9]+(?:,[0-9]+)*(?:\s*k)?)/i);
+  // Pattern: "at most ₹X" or "max ₹X" or "maximum ₹X" or "under ₹X" or "up to ₹X"
+  const maxMatch = text.match(
+    /(?:at most|maximum|max|under|below|up to|within)\s*(?:rs\.?|₹|inr)?\s*([0-9]+(?:\.[0-9]+)?(?:,[0-9]+)*(?:\s*(?:lakhs?|lacs?|lac|lakh|k))?)/i
+  );
   if (maxMatch && explicitMax === undefined) {
-    const isK = maxMatch[1].toLowerCase().includes("k");
-    const num = parseFloat(maxMatch[1].replace(/[^0-9.]/g, ""));
-    const v = isK ? num * 1000 : num;
-    if (!isNaN(v) && v > 0) explicitMax = v;
+    const v = parseRupeeAmount(maxMatch[1]);
+    if (v !== undefined && v > 0) explicitMax = v;
   }
 
   return { explicitMin, explicitMax };
 }
 
 /**
- * Extracts target product category name from a prompt (e.g. "laptop", "monitor", "running shoes").
+ * Extracts target product category name from a prompt (e.g. "laptop", "monitor", "running shoes", "mehendi outfit").
  */
 export function extractTargetProduct(prompt: string): string {
+  const lower = prompt.toLowerCase();
+
+  // Known domain multi-word entities
+  if (lower.includes("mehendi outfit") || lower.includes("mehndi outfit")) return "mehendi outfit";
+  if (lower.includes("wireless earbuds") || lower.includes("earbuds") || lower.includes("airpods")) return "wireless earbuds";
+  if (lower.includes("running shoes") || lower.includes("shoes") || lower.includes("sneakers")) return "running shoes";
+  if (lower.includes("water bottle") || lower.includes("bottle")) return "water bottle";
+  if (lower.includes("power bank")) return "power bank";
+  if (lower.includes("college fest") || lower.includes("fest supplies")) return "college fest supplies";
+  if (lower.includes("monsoon trek") || lower.includes("trekking")) return "trekking supplies";
+  if (lower.includes("hostel")) return "hostel supplies";
+  if (lower.includes("diwali")) return "diwali gift hamper";
+
   const cleaned = prompt
-    .replace(/^(?:i want to buy|i want a|i want an|i want|find the cheapest|find a|find an|find the|find me a|find me|find|looking for a|looking for an|looking for|get me a|get me|buy a|buy an|buy|recommend a|recommend an|build me a|build me)\s+/i, "")
-    .replace(/(?:rs\.?|₹|inr|budget(?: is| of)?|under|below|around|within|cap|price of)\s*[:=]?\s*[0-9]+(?:,[0-9]+)*(?:\s*k)?/gi, "")
+    .replace(/^(?:i want to buy|i want a|i want an|i want|find the cheapest|find a|find an|find the|find me a|find me|find|looking for a|looking for an|looking for|get me a|get me|buy a|buy an|buy|recommend a|recommend an|build me a|build me|plan for|bundle for)\s+/i, "")
+    .replace(/(?:rs\.?|₹|inr|budget(?: is| of)?|under|below|around|within|cap|price of)\s*[:=]?\s*[0-9]+(?:\.[0-9]+)?(?:\s*(?:lakhs?|lacs?|lac|lakh|k))?(?:,[0-9]+)*/gi, "")
     .replace(/\b(?:with|for|under|around|about|between|at least|at most|with a budget of)\b[\s\S]*/i, "")
+    .replace(/[^\w\s-]/g, " ")
     .trim();
 
-  const stopWords = new Set(["the", "a", "an", "best", "cheapest", "top", "good", "find", "get", "buy", "recommend", "me", "please", "my"]);
+  const stopWords = new Set([
+    "the", "a", "an", "best", "cheapest", "top", "good", "find", "get", "buy", "recommend",
+    "me", "please", "my", "some", "any", "around", "within", "under", "below", "lakh", "lakhs", "lac", "k",
+  ]);
+
   if (cleaned.length > 2) {
-    // Take the first 1-3 salient words
     const words = cleaned
       .split(/\s+/)
       .filter((w) => !stopWords.has(w.toLowerCase()));
     if (words.length > 0) {
-      return words.slice(0, 3).join(" ");
+      return words.slice(0, 3).map((w) => w.toLowerCase()).join(" ");
     }
   }
 
-  // Fallbacks based on common domain terms
-  const lower = prompt.toLowerCase();
-  if (lower.includes("laptop")) return "laptop";
-  if (lower.includes("monitor")) return "monitor";
+  // Single word keyword fallbacks
+  if (lower.includes("laptop") || lower.includes("macbook")) return "laptop";
+  if (lower.includes("monitor") || lower.includes("display")) return "monitor";
   if (lower.includes("keyboard")) return "keyboard";
   if (lower.includes("smartphone") || lower.includes("mobile") || lower.includes("phone")) return "smartphone";
-  if (lower.includes("earbuds") || lower.includes("headphones") || lower.includes("earphones")) return "wireless earbuds";
   if (lower.includes("smartwatch") || lower.includes("watch")) return "smartwatch";
   if (lower.includes("backpack") || lower.includes("bag")) return "backpack";
-  if (lower.includes("water bottle") || lower.includes("bottle")) return "water bottle";
-  if (lower.includes("shoes") || lower.includes("sneakers")) return "shoes";
+  if (lower.includes("headphones") || lower.includes("earphones")) return "headphones";
+  if (lower.includes("mehendi") || lower.includes("mehndi")) return "mehendi outfit";
 
   return "product";
 }
@@ -343,7 +408,59 @@ export function extractMustHaveSpecs(prompt: string): string[] {
 }
 
 /**
+ * Detects whether a shopping prompt can be classified deterministically with high confidence
+ * without incurring Gemini API token usage or quota overhead.
+ */
+export function isHighConfidenceDeterministicIntent(prompt: string): boolean {
+  if (!prompt || !prompt.trim()) return false;
+  const lower = prompt.toLowerCase().trim();
+
+  // 1. Explicit multi-item accessories / bundle indicators
+  const hasAccessories =
+    lower.includes("and accessories") ||
+    lower.includes("with accessories") ||
+    lower.includes("accessories for") ||
+    lower.includes("along with") ||
+    lower.includes("including");
+
+  const hasBundleKeywords = MULTI_ITEM_BUNDLE_KEYWORDS.some((kw) => lower.includes(kw));
+
+  // 2. Budget indicator words
+  const hasBudgetKeywords =
+    lower.includes("around") ||
+    lower.includes("near") ||
+    lower.includes("approx") ||
+    lower.includes("under") ||
+    lower.includes("below") ||
+    lower.includes("within") ||
+    lower.includes("budget") ||
+    lower.includes("up to") ||
+    lower.includes("max") ||
+    lower.includes("cheapest");
+
+  // 3. Known product entity
+  const target = extractTargetProduct(prompt);
+  const hasKnownProduct =
+    target !== "product" ||
+    lower.includes("laptop") ||
+    lower.includes("phone") ||
+    lower.includes("shoes") ||
+    lower.includes("bottle") ||
+    lower.includes("outfit") ||
+    lower.includes("mehendi") ||
+    lower.includes("fest") ||
+    lower.includes("trek") ||
+    lower.includes("kit");
+
+  // If prompt has a known product or bundle and clear budget indicator, it can be 100% deterministically classified
+  return (hasKnownProduct && (hasBudgetKeywords || hasAccessories || hasBundleKeywords));
+}
+
+/**
  * Deterministically interprets shopping intent and budget mode without calling external APIs.
+ * Preserves product-level budget targeting:
+ * - "Laptop around ₹1 lakh" -> each recommended laptop should be near ₹1 lakh (single_product_target).
+ * - "Laptop and accessories within ₹1 lakh" -> the entire plan fits within ₹1 lakh (total_basket_cap).
  */
 export function parseBudgetIntentDeterministically(prompt: string, budgetRupees: number): UserBudgetIntent {
   const lower = (prompt || "").toLowerCase();
@@ -351,11 +468,20 @@ export function parseBudgetIntentDeterministically(prompt: string, budgetRupees:
   const targetProduct = extractTargetProduct(prompt);
   const mustHaveRequirements = extractMustHaveSpecs(prompt);
 
+  // Check if prompt text explicitly specifies a budget (e.g. "₹1 lakh" -> 100,000)
+  const promptExtractedBudget = parseRupeeAmount(prompt);
+  const effectiveBudget =
+    typeof promptExtractedBudget === "number" && promptExtractedBudget >= MIN_BUDGET_INR && promptExtractedBudget <= MAX_BUDGET_INR
+      ? promptExtractedBudget
+      : budgetRupees;
+
   // 1. Detect if accessories or complementary products were explicitly requested
   const includesExplicitAccessories =
-    lower.includes("accessory") ||
-    lower.includes("accessories") ||
-    lower.includes("including") ||
+    lower.includes("and accessories") ||
+    lower.includes("with accessories") ||
+    lower.includes("accessories for") ||
+    lower.includes("including accessories") ||
+    lower.includes("plus accessories") ||
     lower.includes("with bag") ||
     lower.includes("along with") ||
     lower.includes("plus a") ||
@@ -364,9 +490,10 @@ export function parseBudgetIntentDeterministically(prompt: string, budgetRupees:
 
   // 2. Multi-Item Basket vs Single-Product intent
   const isMultiItemBundle =
+    includesExplicitAccessories ||
     MULTI_ITEM_BUNDLE_KEYWORDS.some((kw) => lower.includes(kw)) ||
     (lower.includes("setup") && !lower.includes("setup guide")) ||
-    (lower.includes(" and ") && !lower.includes("black and") && !lower.includes("grey and"));
+    (lower.includes(" and ") && !lower.includes("black and") && !lower.includes("grey and") && !lower.includes("silver and"));
 
   let budgetMode: BudgetMode;
   let targetPrice: number | undefined;
@@ -376,40 +503,57 @@ export function parseBudgetIntentDeterministically(prompt: string, budgetRupees:
 
   if (isMultiItemBundle) {
     budgetMode = "total_basket_cap";
-    targetPrice = budgetRupees;
-    maximumPrice = explicitMax ?? budgetRupees;
-    explanation = `Multi-item basket request: total combined expenditure for your bundle must not exceed ₹${budgetRupees.toLocaleString(
+    targetPrice = effectiveBudget;
+    maximumPrice = explicitMax ?? effectiveBudget;
+    explanation = `Multi-item basket request: total combined expenditure for your bundle must not exceed ₹${effectiveBudget.toLocaleString(
       "en-IN"
     )}.`;
   } else {
-    // Single product intent: distinguish target vs max
-    const isCheapestIntent =
-      SINGLE_PRODUCT_MAX_KEYWORDS.some((kw) => lower.includes(kw)) &&
-      (lower.includes("cheapest") ||
-        lower.includes("lowest price") ||
-        lower.includes("most affordable") ||
-        lower.includes("least expensive") ||
-        lower.startsWith("under") ||
-        lower.includes("cheapest under"));
+    // Single product intent: distinguish target ("around ₹1 lakh") vs max ("under ₹1 lakh")
+    const isTargetIntent =
+      SINGLE_PRODUCT_TARGET_KEYWORDS.some((kw) => lower.includes(kw)) ||
+      lower.includes("around") ||
+      lower.includes("near") ||
+      lower.includes("approx") ||
+      lower.includes("about") ||
+      lower.includes("budget of") ||
+      lower.includes("target of");
 
-    if (isCheapestIntent) {
+    const isCheapestOrMaxIntent =
+      !isTargetIntent &&
+      (SINGLE_PRODUCT_MAX_KEYWORDS.some((kw) => lower.includes(kw)) ||
+        lower.includes("under") ||
+        lower.includes("below") ||
+        lower.includes("within") ||
+        lower.includes("cheapest") ||
+        lower.includes("up to") ||
+        lower.includes("at most"));
+
+    if (isCheapestOrMaxIntent) {
       budgetMode = "single_product_max";
-      maximumPrice = explicitMax ?? budgetRupees;
+      maximumPrice = explicitMax ?? effectiveBudget;
       explanation = `Single-product value ceiling: searching for the highest-value, reliable ${targetProduct} under your maximum limit of ₹${maximumPrice.toLocaleString(
         "en-IN"
       )}.`;
     } else {
+      // Default to target price matching for single product
       budgetMode = "single_product_target";
-      targetPrice = budgetRupees;
-      explanation = `Single-product target price: matching individual ${targetProduct} options priced near ₹${budgetRupees.toLocaleString(
+      targetPrice = effectiveBudget;
+      explanation = `Single-product target price: matching individual ${targetProduct} options priced near ₹${effectiveBudget.toLocaleString(
         "en-IN"
       )} (target range: 85%–110%). Unrelated accessories will not be added.`;
     }
   }
 
   // Calculate tolerance
-  const effectiveTarget = targetPrice ?? budgetRupees;
+  const effectiveTarget = targetPrice ?? effectiveBudget;
   const priceTolerance = calculateInitialPriceTolerance(effectiveTarget, minimumPrice, maximumPrice);
+
+  // Check for ambiguous prompt
+  let ambiguityQuestion: string | undefined = undefined;
+  if (targetProduct === "product" && !isMultiItemBundle && !lower.includes("essentials")) {
+    ambiguityQuestion = "Could you specify what product or event supplies you are looking for (e.g. 'laptop around ₹1 lakh' or 'college fest supplies under ₹3,000')?";
+  }
 
   return {
     budgetMode,
@@ -419,10 +563,12 @@ export function parseBudgetIntentDeterministically(prompt: string, budgetRupees:
     maximumPrice,
     currency: CURRENCY,
     includeAccessories: includesExplicitAccessories || isMultiItemBundle,
+    mustHaveAccessories: includesExplicitAccessories,
     priceTolerance,
     mustHaveRequirements,
     rawPrompt: prompt,
     explanation,
+    ambiguityQuestion,
   };
 }
 
@@ -488,21 +634,35 @@ export function validateBudgetIntent(
 }
 
 // ============================================================================
-// 5. GEMINI-POWERED INTENT INTERPRETER
+// 5. CACHED & OPTIMIZED INTENT INTERPRETER
 // ============================================================================
 
-let geminiQuotaCooldownUntil = 0;
-
-export function recordGeminiQuotaExhaustion(): void {
-  geminiQuotaCooldownUntil = Date.now() + 15 * 60 * 1000; // 15-minute circuit breaker
+interface CachedIntentEntry {
+  intent: UserBudgetIntent;
+  cachedAt: number;
 }
 
-export function isGeminiQuotaExhausted(): boolean {
-  return Date.now() < geminiQuotaCooldownUntil;
+const intentCache = new Map<string, CachedIntentEntry>();
+const INTENT_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export function clearBudgetIntentCache(): void {
+  intentCache.clear();
 }
 
-export function resetGeminiQuotaStatus(): void {
-  geminiQuotaCooldownUntil = 0;
+export function getCachedBudgetIntent(prompt: string, budget: number): UserBudgetIntent | null {
+  const key = `${prompt.trim().toLowerCase()}:${Math.round(budget)}`;
+  const entry = intentCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > INTENT_CACHE_TTL_MS) {
+    intentCache.delete(key);
+    return null;
+  }
+  return entry.intent;
+}
+
+export function setCachedBudgetIntent(prompt: string, budget: number, intent: UserBudgetIntent): void {
+  const key = `${prompt.trim().toLowerCase()}:${Math.round(budget)}`;
+  intentCache.set(key, { intent, cachedAt: Date.now() });
 }
 
 export interface InterpretBudgetIntentOptions {
@@ -511,7 +671,8 @@ export interface InterpretBudgetIntentOptions {
 }
 
 /**
- * Interprets user shopping intent with Gemini AI, with bounded retries and deterministic fallback.
+ * Interprets user shopping intent with smart caching, high-confidence deterministic bypass,
+ * bounded Gemini AI calls, and safe deterministic fallback.
  * Strictly validated in application code.
  */
 export async function interpretBudgetIntent(
@@ -525,8 +686,28 @@ export async function interpretBudgetIntent(
   }
   const cleanBudget = budgetValidation.budget;
 
+  // 1. Check intent cache
+  const cached = getCachedBudgetIntent(prompt, cleanBudget);
+  if (cached) {
+    return cached;
+  }
+
+  // 2. High-Confidence Deterministic Bypass:
+  // If the prompt can be classified deterministically with 100% confidence
+  // (e.g. "Laptop around ₹1 lakh", "Laptop and accessories within ₹1 lakh", "college fest supplies"),
+  // return deterministic classification immediately to avoid exhausting Gemini API quota.
+  if (options.skipGemini || isGeminiQuotaExhausted() || isHighConfidenceDeterministicIntent(prompt)) {
+    const deterministic = parseBudgetIntentDeterministically(prompt, cleanBudget);
+    const validation = validateBudgetIntent(deterministic, cleanBudget);
+    if (validation.valid && validation.intent) {
+      setCachedBudgetIntent(prompt, cleanBudget, validation.intent);
+      return validation.intent;
+    }
+  }
+
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
+  // 3. Fall back to Gemini only for complex, free-form, or ambiguous inputs
   if (apiKey && !options.skipGemini && !isGeminiQuotaExhausted()) {
     const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
     try {
@@ -604,6 +785,7 @@ Output strictly a JSON object conforming to this schema without markdown fences:
           maximumPrice: maxPriceVal,
           currency: CURRENCY,
           includeAccessories: Boolean(rawJson.includeAccessories),
+          mustHaveAccessories: Boolean(rawJson.mustHaveAccessories ?? rawJson.includeAccessories),
           priceTolerance: tolerance,
           mustHaveRequirements: Array.isArray(rawJson.mustHaveRequirements)
             ? rawJson.mustHaveRequirements.map(String)
@@ -614,6 +796,7 @@ Output strictly a JSON object conforming to this schema without markdown fences:
 
         const validation = validateBudgetIntent(candidateIntent, cleanBudget);
         if (validation.valid && validation.intent) {
+          setCachedBudgetIntent(prompt, cleanBudget, validation.intent);
           return validation.intent;
         }
       }
@@ -623,9 +806,10 @@ Output strictly a JSON object conforming to this schema without markdown fences:
         lower.includes("generatecontent_free_tier_requests") ||
         lower.includes("generaterequestsperday") ||
         lower.includes("quota exceeded") ||
-        lower.includes("resource_exhausted")
+        lower.includes("resource_exhausted") ||
+        err?.status === 429
       ) {
-        recordGeminiQuotaExhaustion();
+        recordGeminiQuotaExhaustion(err);
       }
       console.warn(
         "[Budget Intent] Gemini interpretation fallback:",
@@ -634,8 +818,10 @@ Output strictly a JSON object conforming to this schema without markdown fences:
     }
   }
 
-  // Deterministic fallback
-  return parseBudgetIntentDeterministically(prompt, cleanBudget);
+  // 4. Deterministic fallback
+  const fallback = parseBudgetIntentDeterministically(prompt, cleanBudget);
+  setCachedBudgetIntent(prompt, cleanBudget, fallback);
+  return fallback;
 }
 
 // ============================================================================

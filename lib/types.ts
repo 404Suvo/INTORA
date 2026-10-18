@@ -34,7 +34,24 @@ export function validateBudgetInr(budget: unknown): {
   if (budget === null || budget === undefined || budget === "") {
     return { valid: false, error: "A positive rupee budget amount is required." };
   }
-  const num = typeof budget === "number" ? budget : parseFloat(String(budget).replace(/,/g, ""));
+
+  let num: number;
+  if (typeof budget === "number") {
+    num = budget;
+  } else {
+    const str = String(budget).trim().toLowerCase();
+    const lakhMatch = str.match(/^([0-9]+(?:\.[0-9]+)?)\s*(?:lakhs?|lacs?|lac|lakh)$/i);
+    const kMatch = str.match(/^([0-9]+(?:\.[0-9]+)?)\s*k$/i);
+
+    if (lakhMatch) {
+      num = parseFloat(lakhMatch[1]) * 100000;
+    } else if (kMatch) {
+      num = parseFloat(kMatch[1]) * 1000;
+    } else {
+      num = parseFloat(str.replace(/,/g, "").replace(/^[₹\s]*(?:rs\.?|inr)?\s*/i, ""));
+    }
+  }
+
   if (isNaN(num) || !isFinite(num)) {
     return { valid: false, error: "Budget must be a valid numeric value." };
   }

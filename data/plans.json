@@ -7222,6 +7222,58 @@
       "onChainCommitment": {
         "status": "uncommitted"
       }
+    },
+    "0xf866f13a7283ce8ab799a249495848c3f733d19ee5419fda5c35ffd552bdb53f_v1": {
+      "intentId": "0xf866f13a7283ce8ab799a249495848c3f733d19ee5419fda5c35ffd552bdb53f",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xf866f13a7283ce8ab799a249495848c3f733d19ee5419fda5c35ffd552bdb53f",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "B00NXXFG7S",
+            "quantity": 1,
+            "unitPriceMinor": 87600
+          }
+        ],
+        "totalMinor": 87600,
+        "expiry": 1792933518
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1792933518,\"intentId\":\"0xf866f13a7283ce8ab799a249495848c3f733d19ee5419fda5c35ffd552bdb53f\",\"items\":[{\"productId\":\"B00NXXFG7S\",\"quantity\":1,\"unitPriceMinor\":87600}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":87600,\"version\":1}",
+      "planHash": "0xf701f5f3796ff0e4f85cd900e5282b633b0de13b2819778f1d6af058baa90f59",
+      "createdAt": "2026-10-18T13:05:18.988Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xa46b7e5767606c9e3695cd6b1b4a3451306568fa36430043cc3e658190378381_v1": {
+      "intentId": "0xa46b7e5767606c9e3695cd6b1b4a3451306568fa36430043cc3e658190378381",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xa46b7e5767606c9e3695cd6b1b4a3451306568fa36430043cc3e658190378381",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "B0H6C3NSKD",
+            "quantity": 1,
+            "unitPriceMinor": 274400
+          }
+        ],
+        "totalMinor": 274400,
+        "expiry": 1792933598
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1792933598,\"intentId\":\"0xa46b7e5767606c9e3695cd6b1b4a3451306568fa36430043cc3e658190378381\",\"items\":[{\"productId\":\"B0H6C3NSKD\",\"quantity\":1,\"unitPriceMinor\":274400}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":274400,\"version\":1}",
+      "planHash": "0xd89214b99b79e110083284fcff343137e30d4a048c0c8fa8743044766af513c8",
+      "createdAt": "2026-10-18T13:06:38.989Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
     }
   },
   "intentVersions": {
@@ -7690,6 +7742,12 @@
       1
     ],
     "0x4533f29df33b8b579aa496fc3607c87446299c6ccaa8ff92e773a684598d493e": [
+      1
+    ],
+    "0xf866f13a7283ce8ab799a249495848c3f733d19ee5419fda5c35ffd552bdb53f": [
+      1
+    ],
+    "0xa46b7e5767606c9e3695cd6b1b4a3451306568fa36430043cc3e658190378381": [
       1
     ]
   }
