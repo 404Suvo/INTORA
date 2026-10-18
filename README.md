@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://intora-rw5z.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-intora--rw5z.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
-  <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4"><img src="https://img.shields.io/badge/Demo%20Video-Watch%20Walkthrough-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Demo Video" /></a>
+  <a href="https://intora-r5uk.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-intora--r5uk.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
+  <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4"><img src="https://img.shields.io/badge/Demo%20Video-Watch%20Walkthrough-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Demo Video" /></a>
   <a href="https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f"><img src="https://img.shields.io/badge/Network-Base%20Sepolia%20(84532)-0052FF?style=for-the-badge&logo=coinbase&logoColor=white" alt="Base Sepolia" /></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.4.0-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></a>
   <a href="https://aistudio.google.com/"><img src="https://img.shields.io/badge/AI%20Engine-Gemini%202.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini" /></a>
@@ -55,8 +55,8 @@ Unlike conventional shopping assistants that act as simple conversational chatbo
 4. **Real-world Amazon India product catalog integration** via ScraperAPI with zero-hallucination guarantees and secret masking.
 5. **Non-custodial cryptographic auditability** on Base Sepolia using `ShoppingIntentRegistry.sol`.
 
-* **Live Web Application:** [https://intora-rw5z.vercel.app/](https://intora-rw5z.vercel.app/)
-* **Demo Video Walkthrough:** [Watch Video (Cloudinary MP4)](https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4)
+* **Live Web Application:** [https://intora-r5uk.vercel.app/](https://intora-r5uk.vercel.app/)
+* **Demo Video Walkthrough:** [Watch Video (Cloudinary MP4)](https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4)
 * **Smart Contract on Base Sepolia:** [`0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f`](https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f)
 * **GitHub Repository:** [https://github.com/404Suvo/INTORA](https://github.com/404Suvo/INTORA)
 
@@ -67,12 +67,12 @@ Unlike conventional shopping assistants that act as simple conversational chatbo
 Watch the complete demonstration of Intora — from natural-language shopping requirement and budget optimization with Gemini, to MetaMask plan approval, What-If simulation revisions, and on-chain cryptographic verification on Base Sepolia:
 
 <p align="center">
-  <video src="https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4" controls width="100%" style="max-width: 800px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-    Your browser does not support the video tag. <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4">Click here to watch the demo video directly</a>.
+  <video src="https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4" controls width="100%" style="max-width: 800px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+    Your browser does not support the video tag. <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4">Click here to watch the demo video directly</a>.
   </video>
 </p>
 
-> 🔗 **Direct Video Link:** [https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4](https://res.cloudinary.com/u0zkue69/video/upload/v1791726244/Intora_recording_1_ctzhbg.mp4)
+> 🔗 **Direct Video Link:** [https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4](https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4)
 
 ---
 
@@ -378,5 +378,5 @@ npm test
 Distributed under the [MIT License](./LICENSE). Designed and built with ❤️ by [Suvo](https://github.com/404Suvo).
 
 <p align="center">
-  <a href="https://github.com/404Suvo/INTORA">⭐ Star us on GitHub</a> • <a href="https://intora-rw5z.vercel.app/">Try Live Demo</a>
+  <a href="https://github.com/404Suvo/INTORA">⭐ Star us on GitHub</a> • <a href="https://intora-r5uk.vercel.app/">Try Live Demo</a>
 </p>
