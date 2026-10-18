@@ -7274,6 +7274,136 @@
       "onChainCommitment": {
         "status": "uncommitted"
       }
+    },
+    "0xb12ee8da333fa701702349058f85913e372aae8e87db6f097b9dd58532eb633c_v1": {
+      "intentId": "0xb12ee8da333fa701702349058f85913e372aae8e87db6f097b9dd58532eb633c",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xb12ee8da333fa701702349058f85913e372aae8e87db6f097b9dd58532eb633c",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "B0CFBBWDKV",
+            "quantity": 1,
+            "unitPriceMinor": 139900
+          }
+        ],
+        "totalMinor": 139900,
+        "expiry": 1792936817
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1792936817,\"intentId\":\"0xb12ee8da333fa701702349058f85913e372aae8e87db6f097b9dd58532eb633c\",\"items\":[{\"productId\":\"B0CFBBWDKV\",\"quantity\":1,\"unitPriceMinor\":139900}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":139900,\"version\":1}",
+      "planHash": "0x55c5a7b916aca82a4c2d8dab4c9e4d528bd0ed24515f0d424b2fc7f247e50191",
+      "createdAt": "2026-10-18T14:00:17.581Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xc2fe6d8d2b44e30ebf51e84bbb3ed945472837c906024f36d30fcd99235c1dc5_v1": {
+      "intentId": "0xc2fe6d8d2b44e30ebf51e84bbb3ed945472837c906024f36d30fcd99235c1dc5",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xc2fe6d8d2b44e30ebf51e84bbb3ed945472837c906024f36d30fcd99235c1dc5",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "B0D72J2KFM",
+            "quantity": 1,
+            "unitPriceMinor": 259900
+          }
+        ],
+        "totalMinor": 259900,
+        "expiry": 1792941329
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1792941329,\"intentId\":\"0xc2fe6d8d2b44e30ebf51e84bbb3ed945472837c906024f36d30fcd99235c1dc5\",\"items\":[{\"productId\":\"B0D72J2KFM\",\"quantity\":1,\"unitPriceMinor\":259900}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":259900,\"version\":1}",
+      "planHash": "0xfb29a9c44b8b648fdbb199ac931e8b349b9fc20a58954a1b5ef5098cc71b25ff",
+      "createdAt": "2026-10-18T15:15:29.953Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x811ec4e03345e544986cdbfe8200df5da333c5be45722dda9bb811ab4777e27f_v1": {
+      "intentId": "0x811ec4e03345e544986cdbfe8200df5da333c5be45722dda9bb811ab4777e27f",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x811ec4e03345e544986cdbfe8200df5da333c5be45722dda9bb811ab4777e27f",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 50000,
+        "items": [
+          {
+            "productId": "140597155X",
+            "quantity": 1,
+            "unitPriceMinor": 43800
+          }
+        ],
+        "totalMinor": 43800,
+        "expiry": 1792941357
+      },
+      "canonicalString": "{\"budgetMinor\":50000,\"currency\":\"INR\",\"expiry\":1792941357,\"intentId\":\"0x811ec4e03345e544986cdbfe8200df5da333c5be45722dda9bb811ab4777e27f\",\"items\":[{\"productId\":\"140597155X\",\"quantity\":1,\"unitPriceMinor\":43800}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":43800,\"version\":1}",
+      "planHash": "0x2c367903267909cbcc3df59e5c1c6c935d5b80224bc901c28ae5b67e7bfda208",
+      "createdAt": "2026-10-18T15:15:57.983Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xb02b72b8518afcbfb01512348cc5d706730f506478ae249b96690ecdfe0a6f31_v1": {
+      "intentId": "0xb02b72b8518afcbfb01512348cc5d706730f506478ae249b96690ecdfe0a6f31",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xb02b72b8518afcbfb01512348cc5d706730f506478ae249b96690ecdfe0a6f31",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 50000,
+        "items": [
+          {
+            "productId": "140597155X",
+            "quantity": 1,
+            "unitPriceMinor": 43800
+          }
+        ],
+        "totalMinor": 43800,
+        "expiry": 1792941367
+      },
+      "canonicalString": "{\"budgetMinor\":50000,\"currency\":\"INR\",\"expiry\":1792941367,\"intentId\":\"0xb02b72b8518afcbfb01512348cc5d706730f506478ae249b96690ecdfe0a6f31\",\"items\":[{\"productId\":\"140597155X\",\"quantity\":1,\"unitPriceMinor\":43800}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":43800,\"version\":1}",
+      "planHash": "0x5c38479953bd55f3173952e6cace481e14b94b3045066e171212fb29d204e0e9",
+      "createdAt": "2026-10-18T15:16:07.226Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x43e73b973027cc27141077904423fe4b136b2d22cbd2c53694923e660941c67e_v1": {
+      "intentId": "0x43e73b973027cc27141077904423fe4b136b2d22cbd2c53694923e660941c67e",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x43e73b973027cc27141077904423fe4b136b2d22cbd2c53694923e660941c67e",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "B0DYNLMLFV",
+            "quantity": 1,
+            "unitPriceMinor": 13100
+          }
+        ],
+        "totalMinor": 13100,
+        "expiry": 1792941548
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1792941548,\"intentId\":\"0x43e73b973027cc27141077904423fe4b136b2d22cbd2c53694923e660941c67e\",\"items\":[{\"productId\":\"B0DYNLMLFV\",\"quantity\":1,\"unitPriceMinor\":13100}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":13100,\"version\":1}",
+      "planHash": "0xcc80a0d4b1e76b0ef60452fe083f52efc11c855213f2ed50c07c3bf4b7970af2",
+      "createdAt": "2026-10-18T15:19:08.708Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
     }
   },
   "intentVersions": {
@@ -7748,6 +7878,21 @@
       1
     ],
     "0xa46b7e5767606c9e3695cd6b1b4a3451306568fa36430043cc3e658190378381": [
+      1
+    ],
+    "0xb12ee8da333fa701702349058f85913e372aae8e87db6f097b9dd58532eb633c": [
+      1
+    ],
+    "0xc2fe6d8d2b44e30ebf51e84bbb3ed945472837c906024f36d30fcd99235c1dc5": [
+      1
+    ],
+    "0x811ec4e03345e544986cdbfe8200df5da333c5be45722dda9bb811ab4777e27f": [
+      1
+    ],
+    "0xb02b72b8518afcbfb01512348cc5d706730f506478ae249b96690ecdfe0a6f31": [
+      1
+    ],
+    "0x43e73b973027cc27141077904423fe4b136b2d22cbd2c53694923e660941c67e": [
       1
     ]
   }
