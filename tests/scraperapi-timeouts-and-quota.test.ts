@@ -649,5 +649,82 @@ describe("Combined Failures: Gemini 429 Quota Exhaustion + ScraperAPI Execution"
       delete (globalThis as any).window;
     }
   });
+
+  it("recovers transparently and succeeds via synchronous fallback if background job is not found or expired (JOB_NOT_FOUND)", async () => {
+    (globalThis as any).window = {};
+    let fallbackBodySent: any = null;
+
+    try {
+      (globalThis as any).fetch = async (url: string, init?: any) => {
+        if (url.includes("/api/plan/generate")) {
+          const body = JSON.parse(init?.body || "{}");
+          if (body.async !== false) {
+            // First attempt: returns 202 Accepted
+            return new Response(
+              JSON.stringify({
+                success: true,
+                jobId: "job_lost_on_serverless",
+                checkUrl: "/api/plan/jobs?id=job_lost_on_serverless",
+                status: "pending",
+              }),
+              { status: 202, headers: { "Content-Type": "application/json" } }
+            );
+          } else {
+            // Fallback synchronous call: returns 200 OK directly
+            fallbackBodySent = body;
+            return new Response(
+              JSON.stringify({
+                success: true,
+                plan: {
+                  title: "Recovered Direct Shopping Plan",
+                  budget: 3000,
+                  totalAmount: 2800,
+                  remainingAmount: 200,
+                  items: [
+                    {
+                      id: "B0RECOVER01",
+                      asin: "B0RECOVER01",
+                      name: "Direct Fallback Item",
+                      unitPrice: 2800,
+                      totalPrice: 2800,
+                      quantity: 1,
+                      inStock: true,
+                    },
+                  ],
+                  validation: { budgetCompliant: true },
+                },
+              }),
+              { status: 200, headers: { "Content-Type": "application/json" } }
+            );
+          }
+        }
+
+        if (url.includes("/api/plan/jobs?id=job_lost_on_serverless")) {
+          // Polling fails with 404 because job was on a separate serverless instance
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "Job 'job_lost_on_serverless' not found or expired.",
+              errorCode: "JOB_NOT_FOUND",
+            }),
+            { status: 404, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        throw new Error(`Unexpected fetch URL: ${url}`);
+      };
+
+      const plan = await generatePlan("direct recovery test", 3000);
+
+      assert.ok(plan);
+      assert.strictEqual(fallbackBodySent?.async, false);
+      assert.strictEqual(plan.title, "Recovered Direct Shopping Plan");
+      assert.strictEqual(plan.totalAmount, 2800);
+      assert.strictEqual(plan.items[0].asin, "B0RECOVER01");
+    } finally {
+      delete (globalThis as any).window;
+    }
+  });
 });
+
 

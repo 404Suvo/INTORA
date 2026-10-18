@@ -143,6 +143,51 @@ export async function generatePlan(
         }
 
         if (pollData.status === "failed" || (!pollRes.ok && pollRes.status !== 200)) {
+          // If the job was not found on the server (404 / JOB_NOT_FOUND, e.g. serverless instance rotation or restart),
+          // seamlessly and immediately fall back to synchronous direct generation so the user's request never fails.
+          if (
+            pollRes.status === 404 ||
+            pollData?.errorCode === "JOB_NOT_FOUND" ||
+            (typeof pollData?.error === "string" && pollData.error.includes("not found or expired"))
+          ) {
+            console.warn(`[Plan Polling] Job '${checkUrl}' not found or expired on server. Falling back to direct generation.`);
+            try {
+              const directRes = await fetch("/api/plan/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  prompt,
+                  budget: roundedBudget,
+                  preference: options.preference,
+                  async: false,
+                }),
+                signal: options.signal,
+              });
+              const directData = await directRes.json();
+              if (directRes.ok && directData.success && directData.plan) {
+                return directData.plan;
+              }
+              if (directData && !directData.success) {
+                const directErrMsg =
+                  directData.userFriendlyMessage ||
+                  directData.error ||
+                  `Direct plan generation failed (Status: ${directRes.status}).`;
+                const directErr = new Error(directErrMsg);
+                (directErr as any).statusCode = directRes.status;
+                (directErr as any).errorCode = directData.errorCode || "SEARCH_FAILED";
+                (directErr as any).isRetryable = directData.isRetryable ?? false;
+                (directErr as any).userFriendlyMessage = directData.userFriendlyMessage || directErrMsg;
+                throw directErr;
+              }
+            } catch (fallbackErr: any) {
+              if (fallbackErr?.name === "AbortError" || options.signal?.aborted) {
+                throw fallbackErr;
+              }
+              // If direct call produced a structured error, propagate it
+              throw fallbackErr;
+            }
+          }
+
           const errMsg =
             pollData.userFriendlyMessage ||
             pollData.error ||

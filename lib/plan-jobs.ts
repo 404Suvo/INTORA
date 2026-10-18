@@ -13,6 +13,10 @@ import { ShoppingPlanData } from "@/data/mockData";
 import { UserTradeOffPreference } from "./trade-off-engine";
 import { sanitizeErrorMessage, ScraperApiError, ScraperApiKeyMissingError } from "./scraperapi";
 
+import fs from "fs";
+import path from "path";
+import os from "os";
+
 export type PlanJobStatus = "pending" | "processing" | "completed" | "failed";
 
 export interface PlanJobError {
@@ -40,16 +44,80 @@ export interface PlanJob {
   elapsedMs: number;
 }
 
-// In-memory job store with TTL cleanup
-const jobs = new Map<string, PlanJob>();
+const DATA_DIR = path.join(process.cwd(), "data");
+const JOBS_FILE = path.join(DATA_DIR, "jobs.json");
+const TMP_DATA_DIR = path.join(os.tmpdir(), "intora-data");
+const TMP_JOBS_FILE = path.join(TMP_DATA_DIR, "jobs.json");
 const JOB_RETENTION_MS = 60 * 60 * 1000; // 1 hour
 
+function getJobsMap(): Map<string, PlanJob> {
+  if (!(globalThis as any).__INTORA_PLAN_JOBS__) {
+    (globalThis as any).__INTORA_PLAN_JOBS__ = new Map<string, PlanJob>();
+    loadJobsFromDisk((globalThis as any).__INTORA_PLAN_JOBS__);
+  }
+  return (globalThis as any).__INTORA_PLAN_JOBS__;
+}
+
+function loadJobsFromDisk(targetMap: Map<string, PlanJob>): void {
+  for (const filePath of [JOBS_FILE, TMP_JOBS_FILE]) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, "utf8");
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const now = Date.now();
+          for (const item of parsed) {
+            if (item && item.id && now - item.createdAt <= JOB_RETENTION_MS) {
+              if (!targetMap.has(item.id)) {
+                targetMap.set(item.id, item);
+              }
+            }
+          }
+        }
+        return;
+      }
+    } catch {
+      // Continue checking fallback path
+    }
+  }
+}
+
+function persistJobsToDisk(jobsMap: Map<string, PlanJob>): void {
+  const jobsArray = Array.from(jobsMap.values());
+  const jsonStr = JSON.stringify(jobsArray, null, 2);
+
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(JOBS_FILE, jsonStr, "utf8");
+    return;
+  } catch {
+    // Read-only filesystem, try TMP_DATA_DIR
+  }
+
+  try {
+    if (!fs.existsSync(TMP_DATA_DIR)) {
+      fs.mkdirSync(TMP_DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(TMP_JOBS_FILE, jsonStr, "utf8");
+  } catch {
+    // In-memory global store remains authoritative
+  }
+}
+
 function cleanupExpiredJobs(): void {
+  const jobs = getJobsMap();
   const now = Date.now();
+  let changed = false;
   for (const [id, job] of jobs.entries()) {
     if (now - job.createdAt > JOB_RETENTION_MS) {
       jobs.delete(id);
+      changed = true;
     }
+  }
+  if (changed) {
+    persistJobsToDisk(jobs);
   }
 }
 
@@ -64,6 +132,7 @@ export function createPlanJob(params: {
   timeoutMs?: number;
 }): PlanJob {
   cleanupExpiredJobs();
+  const jobs = getJobsMap();
 
   const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   const now = Date.now();
@@ -82,6 +151,7 @@ export function createPlanJob(params: {
   };
 
   jobs.set(jobId, job);
+  persistJobsToDisk(jobs);
 
   // Launch async worker without blocking caller
   runJobWorker(jobId, params.timeoutMs || 70000).catch((err) => {
@@ -95,7 +165,12 @@ export function createPlanJob(params: {
  * Retrieves the current state of a plan job.
  */
 export function getPlanJob(jobId: string): PlanJob | undefined {
-  const job = jobs.get(jobId);
+  const jobs = getJobsMap();
+  let job = jobs.get(jobId);
+  if (!job) {
+    loadJobsFromDisk(jobs);
+    job = jobs.get(jobId);
+  }
   if (job) {
     job.elapsedMs = (job.completedAt || Date.now()) - job.createdAt;
   }
@@ -106,6 +181,8 @@ export function getPlanJob(jobId: string): PlanJob | undefined {
  * Lists active or recent plan jobs.
  */
 export function listPlanJobs(): PlanJob[] {
+  const jobs = getJobsMap();
+  loadJobsFromDisk(jobs);
   return Array.from(jobs.values()).sort((a, b) => b.createdAt - a.createdAt);
 }
 
@@ -113,12 +190,14 @@ export function listPlanJobs(): PlanJob[] {
  * Internal background execution worker.
  */
 async function runJobWorker(jobId: string, timeoutMs: number): Promise<void> {
+  const jobs = getJobsMap();
   const job = jobs.get(jobId);
   if (!job) return;
 
   job.status = "processing";
   job.updatedAt = Date.now();
   job.progressMessage = "Searching Amazon India and optimizing shopping plan...";
+  persistJobsToDisk(jobs);
 
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -141,6 +220,7 @@ async function runJobWorker(jobId: string, timeoutMs: number): Promise<void> {
     job.updatedAt = Date.now();
     job.elapsedMs = job.completedAt - job.createdAt;
     job.progressMessage = "Plan generated successfully.";
+    persistJobsToDisk(jobs);
   } catch (err: any) {
     clearTimeout(timeoutId);
 
@@ -218,5 +298,6 @@ async function runJobWorker(jobId: string, timeoutMs: number): Promise<void> {
       userFriendlyMessage,
       details: err?.providerDetails || err?.cause?.message || undefined,
     };
+    persistJobsToDisk(jobs);
   }
 }

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { ShoppingPlan, StoredPlanRecord } from "./types";
 
 /**
@@ -12,6 +13,8 @@ import { ShoppingPlan, StoredPlanRecord } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const PLANS_FILE = path.join(DATA_DIR, "plans.json");
+const TMP_DATA_DIR = path.join(os.tmpdir(), "intora-data");
+const TMP_PLANS_FILE = path.join(TMP_DATA_DIR, "plans.json");
 
 interface StorageSchema {
   // Keyed by `${intentId.toLowerCase()}_v${version}`
@@ -20,33 +23,92 @@ interface StorageSchema {
   intentVersions: Record<string, number[]>;
 }
 
+function getGlobalStore(): StorageSchema {
+  if (!(globalThis as any).__INTORA_PLANS_STORE__) {
+    (globalThis as any).__INTORA_PLANS_STORE__ = { plans: {}, intentVersions: {} };
+  }
+  return (globalThis as any).__INTORA_PLANS_STORE__;
+}
+
 function ensureStorage(): StorageSchema {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+  const memStore = getGlobalStore();
 
-  if (!fs.existsSync(PLANS_FILE)) {
-    const initial: StorageSchema = { plans: {}, intentVersions: {} };
-    fs.writeFileSync(PLANS_FILE, JSON.stringify(initial, null, 2), "utf8");
-    return initial;
-  }
-
+  // Try reading from primary PLANS_FILE
   try {
-    const raw = fs.readFileSync(PLANS_FILE, "utf8");
-    return JSON.parse(raw) as StorageSchema;
-  } catch (err) {
-    console.error("Failed to parse plans storage file, reinitializing", err);
-    const initial: StorageSchema = { plans: {}, intentVersions: {} };
-    fs.writeFileSync(PLANS_FILE, JSON.stringify(initial, null, 2), "utf8");
-    return initial;
+    if (fs.existsSync(PLANS_FILE)) {
+      const raw = fs.readFileSync(PLANS_FILE, "utf8");
+      const parsed = JSON.parse(raw) as StorageSchema;
+      Object.assign(memStore.plans, parsed.plans);
+      Object.assign(memStore.intentVersions, parsed.intentVersions);
+      return memStore;
+    }
+  } catch (err: any) {
+    // Read failure from primary; continue to check fallback
   }
+
+  // Try reading from TMP_PLANS_FILE
+  try {
+    if (fs.existsSync(TMP_PLANS_FILE)) {
+      const raw = fs.readFileSync(TMP_PLANS_FILE, "utf8");
+      const parsed = JSON.parse(raw) as StorageSchema;
+      Object.assign(memStore.plans, parsed.plans);
+      Object.assign(memStore.intentVersions, parsed.intentVersions);
+      return memStore;
+    }
+  } catch {
+    // Continue with in-memory store
+  }
+
+  // Attempt to initialize primary file if possible
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(PLANS_FILE)) {
+      fs.writeFileSync(PLANS_FILE, JSON.stringify(memStore, null, 2), "utf8");
+    }
+  } catch {
+    // Filesystem may be read-only (e.g. Vercel /var/task); try TMP_DATA_DIR
+    try {
+      if (!fs.existsSync(TMP_DATA_DIR)) {
+        fs.mkdirSync(TMP_DATA_DIR, { recursive: true });
+      }
+      if (!fs.existsSync(TMP_PLANS_FILE)) {
+        fs.writeFileSync(TMP_PLANS_FILE, JSON.stringify(memStore, null, 2), "utf8");
+      }
+    } catch {
+      // Memory store remains authoritative
+    }
+  }
+
+  return memStore;
 }
 
 function saveStorage(data: StorageSchema): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  // Always update in-memory global store first
+  const memStore = getGlobalStore();
+  Object.assign(memStore.plans, data.plans);
+  Object.assign(memStore.intentVersions, data.intentVersions);
+
+  // Attempt write to primary PLANS_FILE
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(PLANS_FILE, JSON.stringify(data, null, 2), "utf8");
+    return;
+  } catch (err: any) {
+    // If read-only filesystem (e.g. EROFS on Vercel), fallback to os.tmpdir()
   }
-  fs.writeFileSync(PLANS_FILE, JSON.stringify(data, null, 2), "utf8");
+
+  try {
+    if (!fs.existsSync(TMP_DATA_DIR)) {
+      fs.mkdirSync(TMP_DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(TMP_PLANS_FILE, JSON.stringify(data, null, 2), "utf8");
+  } catch (tmpErr) {
+    console.warn("[PlanStorage] Read-only filesystem detected; retained plans in memory.", tmpErr);
+  }
 }
 
 export function savePlanRecord(

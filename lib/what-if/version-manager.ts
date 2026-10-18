@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { ShoppingPlanData } from "@/data/mockData";
 import { savePlanRecord } from "@/lib/plan-storage";
 import { CURRENCY, ShoppingPlan } from "@/lib/types";
@@ -8,6 +9,8 @@ import { PlanVersionRecord, ValidatedScenario } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const VERSIONS_FILE = path.join(DATA_DIR, "versions.json");
+const TMP_DATA_DIR = path.join(os.tmpdir(), "intora-data");
+const TMP_VERSIONS_FILE = path.join(TMP_DATA_DIR, "versions.json");
 
 interface VersionStoreSchema {
   // Keyed by `${intentId.toLowerCase()}_v${version}`
@@ -16,39 +19,92 @@ interface VersionStoreSchema {
   intentVersionIndex: Record<string, number[]>;
 }
 
+function getGlobalVersionStore(): VersionStoreSchema {
+  if (!(globalThis as any).__INTORA_VERSIONS_STORE__) {
+    (globalThis as any).__INTORA_VERSIONS_STORE__ = {
+      versionRecords: {},
+      intentVersionIndex: {},
+    };
+  }
+  return (globalThis as any).__INTORA_VERSIONS_STORE__;
+}
+
 function ensureVersionStorage(): VersionStoreSchema {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+  const memStore = getGlobalVersionStore();
 
-  if (!fs.existsSync(VERSIONS_FILE)) {
-    const initial: VersionStoreSchema = {
-      versionRecords: {},
-      intentVersionIndex: {},
-    };
-    fs.writeFileSync(VERSIONS_FILE, JSON.stringify(initial, null, 2), "utf8");
-    return initial;
-  }
-
+  // Try reading from primary VERSIONS_FILE
   try {
-    const raw = fs.readFileSync(VERSIONS_FILE, "utf8");
-    return JSON.parse(raw) as VersionStoreSchema;
-  } catch (err) {
-    console.error("Failed to parse versions storage file, resetting store:", err);
-    const initial: VersionStoreSchema = {
-      versionRecords: {},
-      intentVersionIndex: {},
-    };
-    fs.writeFileSync(VERSIONS_FILE, JSON.stringify(initial, null, 2), "utf8");
-    return initial;
+    if (fs.existsSync(VERSIONS_FILE)) {
+      const raw = fs.readFileSync(VERSIONS_FILE, "utf8");
+      const parsed = JSON.parse(raw) as VersionStoreSchema;
+      Object.assign(memStore.versionRecords, parsed.versionRecords);
+      Object.assign(memStore.intentVersionIndex, parsed.intentVersionIndex);
+      return memStore;
+    }
+  } catch {
+    // Continue checking fallback
   }
+
+  // Try reading from fallback TMP_VERSIONS_FILE
+  try {
+    if (fs.existsSync(TMP_VERSIONS_FILE)) {
+      const raw = fs.readFileSync(TMP_VERSIONS_FILE, "utf8");
+      const parsed = JSON.parse(raw) as VersionStoreSchema;
+      Object.assign(memStore.versionRecords, parsed.versionRecords);
+      Object.assign(memStore.intentVersionIndex, parsed.intentVersionIndex);
+      return memStore;
+    }
+  } catch {
+    // Continue with in-memory store
+  }
+
+  // Attempt to initialize primary file if writable
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(VERSIONS_FILE)) {
+      fs.writeFileSync(VERSIONS_FILE, JSON.stringify(memStore, null, 2), "utf8");
+    }
+  } catch {
+    try {
+      if (!fs.existsSync(TMP_DATA_DIR)) {
+        fs.mkdirSync(TMP_DATA_DIR, { recursive: true });
+      }
+      if (!fs.existsSync(TMP_VERSIONS_FILE)) {
+        fs.writeFileSync(TMP_VERSIONS_FILE, JSON.stringify(memStore, null, 2), "utf8");
+      }
+    } catch {
+      // Memory store is authoritative
+    }
+  }
+
+  return memStore;
 }
 
 function saveVersionStorage(store: VersionStoreSchema): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  const memStore = getGlobalVersionStore();
+  Object.assign(memStore.versionRecords, store.versionRecords);
+  Object.assign(memStore.intentVersionIndex, store.intentVersionIndex);
+
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(VERSIONS_FILE, JSON.stringify(store, null, 2), "utf8");
+    return;
+  } catch {
+    // EROFS / read-only filesystem on Vercel: fallback to tmpdir
   }
-  fs.writeFileSync(VERSIONS_FILE, JSON.stringify(store, null, 2), "utf8");
+
+  try {
+    if (!fs.existsSync(TMP_DATA_DIR)) {
+      fs.mkdirSync(TMP_DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(TMP_VERSIONS_FILE, JSON.stringify(store, null, 2), "utf8");
+  } catch (err) {
+    console.warn("[VersionStorage] Read-only filesystem detected; retained versions in memory.", err);
+  }
 }
 
 /**

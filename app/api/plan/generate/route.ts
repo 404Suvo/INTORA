@@ -58,7 +58,13 @@ export async function POST(req: Request) {
     const preferHeader = req.headers.get("prefer") || "";
     const isAsyncRequested = body?.async === true || preferHeader.includes("respond-async");
 
-    if (isAsyncRequested) {
+    // In serverless environments (e.g. Vercel / AWS Lambda), background promises are frozen after 202 is returned
+    // and subsequent polling requests hit separate isolated lambda instances without shared memory.
+    // On Vercel (process.env.VERCEL is set), execute synchronously within maxDuration (60s)
+    // so the live deployment generates plans with 100% reliability without losing jobs.
+    const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+    if (isAsyncRequested && !isServerless) {
       const job = createPlanJob({
         prompt: prompt.trim(),
         budget: budgetNumber,
