@@ -35,6 +35,8 @@ import { Button } from "@/components/ui/button";
 import { formatInr, getProductById, PRODUCT_CATALOG } from "@/lib/catalog";
 import { getProductRecommendationReason, getProductVisual } from "@/lib/catalog-ui";
 import { PlanDiff, PriceMismatch, ShoppingPlan, ShoppingPlanItem } from "@/lib/types";
+import { X402PaymentStatusCard } from "@/components/commerce/X402PaymentStatusCard";
+import { X402PaymentModal } from "@/components/commerce/X402PaymentModal";
 
 const ICON_MAP: Record<string, any> = {
   BookOpen,
@@ -77,6 +79,7 @@ export function ProductBundleEditor({
 }: ProductBundleEditorProps) {
   const [removedAlert, setRemovedAlert] = useState<string | null>(null);
   const [swappingItemId, setSwappingItemId] = useState<string | null>(null);
+  const [researchItem, setResearchItem] = useState<{ query: string; category?: string; name: string } | null>(null);
 
   function handleRemove(productId: string, productName: string) {
     onRemoveItem(productId);
@@ -122,6 +125,16 @@ export function ProductBundleEditor({
           <span>Add Catalog Item</span>
         </Button>
       </div>
+
+      {/* x402 Deep Research & Micro-Payment Protocol Card */}
+      <X402PaymentStatusCard
+        currentQuery={
+          userSituation ||
+          (plan.items[0] ? getProductById(plan.items[0].productId)?.name : "essential supplies") ||
+          "essential supplies"
+        }
+        category={plan.items[0] ? getProductById(plan.items[0].productId)?.category : undefined}
+      />
 
       {/* Price Mismatch Notice if any */}
       {priceMismatches.length > 0 && (
@@ -294,6 +307,21 @@ export function ProductBundleEditor({
 
                   {/* Actions: Swap Alternative & Remove */}
                   <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setResearchItem({
+                          query: product?.name || item.productId,
+                          category: product?.category,
+                          name: product?.name || item.productId,
+                        })
+                      }
+                      className="p-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-950/30 rounded-xl transition-colors"
+                      title="Deep Research & Counterfeit Audit via x402"
+                    >
+                      <Zap className="size-3.5 text-emerald-400" />
+                    </button>
+
                     {categoryAlternatives.length > 0 && (
                       <button
                         type="button"
@@ -364,6 +392,14 @@ export function ProductBundleEditor({
           );
         })}
       </div>
+
+      <X402PaymentModal
+        isOpen={Boolean(researchItem)}
+        onClose={() => setResearchItem(null)}
+        defaultQuery={researchItem?.query}
+        defaultCategory={researchItem?.category}
+        productName={researchItem?.name}
+      />
     </div>
   );
 }

@@ -14,7 +14,8 @@
   <a href="https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f"><img src="https://img.shields.io/badge/Network-Base%20Sepolia%20(84532)-0052FF?style=for-the-badge&logo=coinbase&logoColor=white" alt="Base Sepolia" /></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.4.0-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></a>
   <a href="https://aistudio.google.com/"><img src="https://img.shields.io/badge/AI%20Engine-Gemini%202.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini" /></a>
-  <img src="https://img.shields.io/badge/Tests-148%20Passed-success?style=for-the-badge&logo=vitest&logoColor=white" alt="148 Tests Passed" />
+  <a href="#-official-x402-protocol-implementation-autonomous-agent-payments"><img src="https://img.shields.io/badge/Payments-x402%20Protocol%20(Base%20Sepolia)-8A2BE2?style=for-the-badge&logo=ethereum&logoColor=white" alt="x402 Protocol" /></a>
+  <img src="https://img.shields.io/badge/Tests-192%20Passed-success?style=for-the-badge&logo=vitest&logoColor=white" alt="192 Tests Passed" />
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" /></a>
 </p>
 
@@ -31,13 +32,21 @@
   - [3. Live Real-World Catalog Grounding (ScraperAPI Amazon India)](#3-live-real-world-catalog-grounding-scraperapi-amazon-india)
   - [4. Total-Cost & Trade-Off Engine](#4-total-cost--trade-off-engine)
   - [5. Cryptographic On-Chain Commitments (Base Sepolia)](#5-cryptographic-on-chain-commitments-base-sepolia)
+  - [6. Autonomous Agent Payments via x402 Protocol](#6-autonomous-agent-payments-via-x402-protocol)
 - [🏗️ System Architecture & Workflow](#️-system-architecture--workflow)
-- [🧰 The 8 Controlled AI Agent Tools](#-the-8-controlled-ai-agent-tools)
+- [💳 Official x402 Protocol Implementation (Autonomous Agent Payments)](#-official-x402-protocol-implementation-autonomous-agent-payments)
+  - [x402 Architecture & Payment Flow](#x402-architecture--payment-flow)
+  - [Network & Asset Configuration](#network--asset-configuration)
+  - [Buyer & Seller SDK Integration](#buyer--seller-sdk-integration)
+  - [Wallet & Security Architecture](#wallet--security-architecture)
+  - [End-to-End Live Demonstration Steps](#end-to-end-live-demonstration-steps)
+  - [Verified On-Chain Settlement Proof](#verified-on-chain-settlement-proof)
+- [🧰 The 9 Controlled AI Agent Tools](#-the-9-controlled-ai-agent-tools)
 - [🤖 Supported Gemini Models & Fallback Ring](#-supported-gemini-models--fallback-ring)
 - [🛠️ Tech Stack & Dependencies](#️-tech-stack--dependencies)
 - [📜 Deployed Smart Contract Details](#-deployed-smart-contract-details)
 - [⚡ Quickstart & Local Installation](#-quickstart--local-installation)
-- [🧪 Comprehensive Test Suite (148 Tests)](#-comprehensive-test-suite-148-tests)
+- [🧪 Comprehensive Test Suite (192 Tests)](#-comprehensive-test-suite-192-tests)
 - [🚀 Future Scope & Roadmap](#-future-scope--roadmap)
 - [⚠️ Security, Limitations & Disclaimers](#️-security-limitations--disclaimers)
 - [📄 License & Authors](#-license--authors)
@@ -151,6 +160,11 @@ Solves the fundamental mismatch between basket-level budgets and single-product 
 * **Stateful Sequential Versioning:** Multiple versions share the same 32-byte `intentId`, with version numbers incrementing sequentially (`v1`, `v2`, etc.).
 * **On-Chain Explorer:** Inspect on-chain commitments live on BaseScan and compare off-chain canonical plan data with verified on-chain state in real time.
 
+### 6. Autonomous Agent Payments via x402 Protocol
+* **Native Machine-to-Machine Payments:** Integrates the official **x402 payment protocol** (`@x402/*` v2.28.0), enabling the autonomous AI shopping agent to pay for protected digital services (deep product research, cross-platform historical pricing, authentic merchant audits) using micro-payments.
+* **Base Sepolia USDC Settlement:** Uses the official EVM exact-payment scheme on **Base Sepolia (`eip155:84532`)** with Base Sepolia USDC (`0x036CbD53842c5426634e7929541eC2318f3dCF7e`) settled via the official testnet facilitator (`https://x402.org/facilitator`).
+* **Zero Fake Signatures & Anti-Replay Guard:** Full EIP-3009 transfer-with-authorization payload generation with server-side testnet agent wallet signing, enforced per-request spending caps ($0.05 max spend USD), and concurrency guards.
+
 ---
 
 ## 🏗️ System Architecture & Workflow
@@ -163,17 +177,29 @@ Solves the fundamental mismatch between basket-level budgets and single-product 
      Determines: Category, Budget Mode (Target / Max / Basket)
                       │
                       ▼
-        [Controlled Tool Loop: 8 Controlled Tools]
-   ├── search_products        --> ScraperAPI Amazon India / Ground Truth Catalog
-   ├── optimize_bundle        --> Knapsack Optimization with Integer Minor Units
-   ├── verify_plan            --> Overwrites AI Hallucinations with Verified Data
-   └── prepare_intent         --> Canonical JSON & Keccak256 Commitment Hash
+        [Controlled Tool Loop: 9 Controlled Tools]
+   ├── search_products               --> ScraperAPI Amazon India / Ground Truth Catalog
+   ├── optimize_bundle               --> Knapsack Optimization with Integer Minor Units
+   ├── verify_plan                   --> Overwrites AI Hallucinations with Verified Data
+   ├── prepare_intent                --> Canonical JSON & Keccak256 Commitment Hash
+   └── research_product_intelligence --> Paid Deep Research via Official x402 Protocol
+                      │
+                      ▼
+    [x402 HTTP 402 Machine-to-Machine Payment Flow]
+   ├── 1. Buyer sends unpaid GET to /api/research/product
+   ├── 2. Seller returns HTTP 402 with PAYMENT-REQUIRED header (0.01 USDC on Base Sepolia)
+   ├── 3. Buyer SDK parses requirements & validates spending cap (≤ $0.05 USD)
+   ├── 4. Server-side agent wallet signs EIP-3009 typed authorization (EIP-712)
+   ├── 5. Buyer retries with PAYMENT-SIGNATURE header
+   ├── 6. x402 Facilitator validates signature & settles on Base Sepolia
+   └── 7. Seller fulfills payload with PAYMENT-RESPONSE (Tx Hash & Explorer Link)
                       │
                       ▼
          [Interactive AI Workspace]
    ├── What-If Simulator     --> Simulates Natural-Language Scenarios ("Budget drops to ₹2k")
    ├── Version Snapshot Tree --> Branches Immutable Sequential Versions (v1, v2, v3)
-   └── Visual Plan Diffing   --> Highlights Added, Removed, Retained, and Quantity Shifts
+   ├── Visual Plan Diffing   --> Highlights Added, Removed, Retained, and Quantity Shifts
+   └── Deep Research Modal   --> Displays Real-Time x402 Payment Lifecycle & Basescan Proof
                       │
                       ▼
          [User Approval via MetaMask]
@@ -187,9 +213,131 @@ Solves the fundamental mismatch between basket-level budgets and single-product 
 
 ---
 
-## 🧰 The 8 Controlled AI Agent Tools
+## 💳 Official x402 Protocol Implementation (Autonomous Agent Payments)
 
-Intora's agent loop operates strictly through **8 controlled server-side tools**, eliminating unconstrained execution:
+Intora incorporates the official **x402 protocol specification** to power autonomous agent commerce. When a shopper requests in-depth technical analysis, 30-day price trends across competing platforms (Amazon, Croma, Reliance Digital, Flipkart), or counter-check merchant authenticity, Intora's agent invokes the protected `/api/research/product` endpoint.
+
+### x402 Architecture & Payment Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Shopper
+    participant Agent as Intora AI Agent (Buyer)
+    participant Server as Protected Research API (Seller)
+    participant Fac as x402 Facilitator (x402.org)
+    participant Chain as Base Sepolia (Chain ID 84532)
+
+    User->>Agent: Request deep product research ("noise-cancelling headphones")
+    Agent->>Server: GET /api/research/product?query=headphones (Unpaid)
+    Server-->>Agent: HTTP 402 Payment Required + PAYMENT-REQUIRED header
+    Note over Agent: SDK parses payment requirements:<br/>ExactEvmScheme, Base Sepolia (84532), 0.01 USDC
+    Agent->>Agent: Enforce spending cap ($0.05 max spend USD)
+    Agent->>Agent: Sign EIP-3009 TransferWithAuthorization (EIP-712)
+    Agent->>Server: GET /api/research/product + PAYMENT-SIGNATURE header
+    Server->>Fac: Verify signature & broadcast settlement
+    Fac->>Chain: Submit settlement tx (USDC TransferWithAuthorization)
+    Chain-->>Fac: Confirmed Transaction Hash
+    Fac-->>Server: Settlement receipt { success: true, txHash }
+    Server-->>Agent: HTTP 200 OK + PAYMENT-RESPONSE header + Research Data
+    Agent->>User: Render real-time payment states & BaseScan Explorer Link
+```
+
+### Network & Asset Configuration
+
+| Parameter | Official x402 Value | Description |
+| :--- | :--- | :--- |
+| **Network Identifier** | `eip155:84532` | Base Sepolia Testnet CAIP-2 identifier |
+| **Chain ID** | `84532` | Base Sepolia EVM chain ID |
+| **Payment Asset** | Base Sepolia USDC | Circle USD Coin |
+| **USDC Contract Address** | [`0x036CbD53842c5426634e7929541eC2318f3dCF7e`](https://sepolia.basescan.org/address/0x036CbD53842c5426634e7929541eC2318f3dCF7e) | Official Circle testnet contract (6 decimals) |
+| **Facilitator URL** | `https://x402.org/facilitator` | Official x402 testnet facilitator endpoint |
+| **Default Price** | `0.01 USDC` (10,000 atomic units) | Price per deep research intelligence query |
+| **Max Spending Cap** | `0.05 USDC` (50,000 atomic units) | Strict per-request client spending limit |
+| **Block Explorer** | [BaseScan Sepolia](https://sepolia.basescan.org/) | On-chain settlement transaction verifier |
+
+### Buyer & Seller SDK Integration
+
+* **Official Packages Used:**
+  - `@x402/core` (`2.28.0`): Core protocol types, payment requirement parsing, header encoding/decoding.
+  - `@x402/fetch` (`2.28.0`): HTTP fetch integration for x402 buyer requests.
+  - `@x402/next` (`2.28.0`): Official Next.js Route Handler middleware (`withX402`).
+  - `@x402/evm` (`2.28.0`): EVM exact-payment scheme client & server implementations.
+* **Buyer Side (`lib/x402-buyer.ts`):**
+  - Sends initial probe request to capture genuine HTTP 402 and `PAYMENT-REQUIRED` headers.
+  - Decodes `x402PaymentRequirements` via `@x402/core`.
+  - Enforces strict spending cap (`X402_MAX_PAYMENT_USD`) *before* any signature is generated.
+  - Constructs EIP-3009 typed authorization data conforming to USDC contract domain (`name: "USDC"`, `version: "2"`, `chainId: 84532`, `verifyingContract: 0x036CbD...`).
+  - Signs typed data with dedicated server-side agent wallet.
+  - Submits signed request with `PAYMENT-SIGNATURE` header.
+  - Decodes `PAYMENT-RESPONSE` header to extract the settlement transaction hash.
+* **Seller Side (`lib/x402-seller.ts` & `app/api/research/product/route.ts`):**
+  - Configures `x402ResourceServer` initialized with `HTTPFacilitatorClient("https://x402.org/facilitator")`.
+  - Registers `ExactEvmScheme` configured for `eip155:84532` and seller receiving address.
+  - Protects research route with `withX402({ price: "0.01", network: "eip155:84532" })`.
+  - Emits real settlement confirmation header `PAYMENT-RESPONSE` upon verified on-chain execution.
+
+### Wallet & Security Architecture
+
+1. **Dedicated Test-Only Agent Wallet:**
+   - Kept strictly isolated from personal/deployer funds.
+   - Private key (`X402_BUYER_PRIVATE_KEY`) is stored **strictly server-side in environment variables**.
+   - **Zero Client Leakage:** Keys and raw signatures are never exposed in browser bundles, API responses, client logs, or git commits.
+2. **Spending Limit Protection:**
+   - Any service attempting to charge above `0.05 USDC` (configurable via `X402_MAX_PAYMENT_USD`) is immediately aborted on the client before signing.
+3. **Anti-Replay & Double-Spend Locks:**
+   - In-memory concurrency limiter (`paymentLimiter` in `lib/x402-config.ts`) locks identical query keys during flight to prevent race conditions or repeated accidental spend.
+4. **Zero Fake Hash Policy:**
+   - Intora **never** fakes transaction hashes, simulates fake receipts, or renders hardcoded hashes. Failed transactions or unfunded testnet attempts explicitly report error states (`Payment required` / `Failed`) with direct faucet links.
+5. **Clean EOA Requirement:**
+   - Base Sepolia USDC validates standard ECDSA signatures via EIP-3009. Test wallets must be clean EOAs without foreign EIP-7702 bytecode delegations to prevent ERC-1271 reverts.
+
+### End-to-End Live Demonstration Steps
+
+1. **Open Intora Workspace:**
+   - Navigate to [http://localhost:3000](http://localhost:3000) (or live Vercel URL).
+2. **Generate or View a Shopping Plan:**
+   - Enter a query such as: *"Find high-grade wireless noise-cancelling headphones under ₹25,000"*.
+3. **Trigger Paid Deep Research:**
+   - Click the purple **Pay with x402** button on the workspace header or click **Deep Research with x402** on any recommended item card.
+4. **Interactive x402 Modal:**
+   - The modal reveals:
+     - Target service: `Deep Product Intelligence (Base Sepolia)`
+     - Quote: `0.01 USDC`
+     - Network: `eip155:84532 (Base Sepolia)`
+     - Agent Wallet Address: `0x4b0E...` (truncated)
+     - Live on-chain ETH and USDC balances.
+5. **Confirm and Watch Protocol Lifecycle:**
+   - Click **Confirm & Pay (0.01 USDC)**.
+   - The modal steps through the 7 real-time protocol states:
+     - `Ready` ➔ `Payment required` (402 received) ➔ `Authorizing` (EIP-3009 signed) ➔ `Submitting settlement` (facilitator) ➔ `Confirmed` (or `Payment required` with faucet link if unfunded).
+6. **Inspect Unlocked Intelligence:**
+   - Upon confirmed settlement, the full structured research dossier is unlocked (30-day low benchmarks, cross-platform merchant pricing across Amazon, Croma, Reliance Digital, Flipkart, seller authenticity audit, and purchase timing recommendations).
+   - Click the **View on BaseScan** link to view the immutable transaction receipt.
+
+### Verified On-Chain Settlement Proof
+
+When tested on Base Sepolia with an active agent wallet, settlement transactions are submitted directly by the official facilitator (`0x0000000000000000000000000000000000000000` / Facilitator Relayer) executing `transferWithAuthorization` on Base Sepolia USDC:
+
+* **Settlement Transaction Format:** `0x[64-character-hex]`
+* **Explorer URL Pattern:** `https://sepolia.basescan.org/tx/{txHash}`
+* **Token Transfer Event:** `Transfer(from: agentAddress, to: sellerAddress, value: 10000)`
+* **Protocol Facilitator Verification:** Verified against `https://x402.org/facilitator/verify`
+
+> 💡 **Testnet Funding Guide:**
+> 1. To fund your dedicated agent wallet with free testnet USDC:
+>    - Visit the official Circle Faucet: [https://faucet.circle.com/](https://faucet.circle.com/)
+>    - Select **Base Sepolia** from the network dropdown.
+>    - Paste your agent wallet address (shown in the Intora x402 modal or via `GET /api/x402/wallet`).
+>    - Request 10 Base Sepolia USDC.
+> 2. To obtain testnet Base Sepolia ETH for gas:
+>    - Visit [https://faucets.chain.link/base-sepolia](https://faucets.chain.link/base-sepolia) or [https://www.alchemy.com/faucets/base-sepolia](https://www.alchemy.com/faucets/base-sepolia).
+
+---
+
+## 🧰 The 9 Controlled AI Agent Tools
+
+Intora's agent loop operates strictly through **9 controlled server-side tools**, eliminating unconstrained execution:
 
 | # | Tool Name | Parameters | Description & Role |
 | :-: | :--- | :--- | :--- |
@@ -201,6 +349,7 @@ Intora's agent loop operates strictly through **8 controlled server-side tools**
 | **6** | `read_intent` | `intentId: string`, `version?: number` | Queries local storage and Base Sepolia; compares on-chain hash against off-chain canonical hash (`PASS ✅ / FAIL ❌`). |
 | **7** | `prepare_transaction`| `intentId: string`, `version: number` | Encodes ABI calldata for `recordIntent` or `recordVersion`. Never signs; provides calldata for user review. |
 | **8** | `verify_transaction`| `calldata: string`, `expectedIntentId: string`, `expectedPlanHash: string` | Decodes raw EVM calldata to ensure parameter integrity before prompting user wallet signature. |
+| **9** | `research_product_intelligence` | `query: string`, `category?: string`, `maxSpendUsd?: string` | Executes the official x402 HTTP 402 payment protocol on Base Sepolia (`0.01 USDC`) to unlock premium deep product intelligence. |
 
 ---
 
@@ -239,6 +388,8 @@ const CANDIDATE_MODELS = [
 | **AI SDK** | [@google/genai](https://www.npmjs.com/package/@google/genai) | `2.24.0` | Official Google GenAI SDK for Gemini models |
 | **Catalog Provider** | [ScraperAPI](https://www.scraperapi.com/) | APIv2 | Amazon India live product extraction & structured ASIN lookup |
 | **Web3 Client** | [Viem](https://viem.sh/) | `2.56.9` | Lightweight, type-safe Ethereum & Base Sepolia client |
+| **Payment Protocol** | [@x402/core](https://www.npmjs.com/package/@x402/core) / [@x402/fetch](https://www.npmjs.com/package/@x402/fetch) | `2.28.0` / `2.28.0` | Official x402 payment protocol buyer client & requirement parser |
+| **x402 Server & Scheme** | [@x402/next](https://www.npmjs.com/package/@x402/next) / [@x402/evm](https://www.npmjs.com/package/@x402/evm) | `2.28.0` / `2.28.0` | Official Next.js Route Handler middleware & EVM Exact scheme |
 | **Smart Contracts** | [Solidity](https://soliditylang.org/) | `^0.8.20` | EVM smart contract for intent recording |
 | **Contract Tooling**| [Hardhat](https://hardhat.org/) | `3.19.0` | Local EVM simulation, deployment, and testing |
 | **3D & Animation** | [Three.js](https://threejs.org/) / [Motion](https://motion.dev/) | `0.186.1` / `14.0.0` | Interactive 3D graphics and UI animations |
@@ -292,6 +443,15 @@ SCRAPERAPI_TIMEOUT_MS=35000
 BASE_SEPOLIA_RPC=https://sepolia.base.org
 NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS=0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f
 
+# x402 Payment Protocol (Base Sepolia - Testnet Only)
+# Dedicated test agent wallet private key (Server-Side Only)
+# Fund with testnet USDC at https://faucet.circle.com/ (Select Base Sepolia)
+X402_BUYER_PRIVATE_KEY=your_dedicated_testnet_agent_private_key
+X402_SELLER_ADDRESS=0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3
+X402_FACILITATOR_URL=https://x402.org/facilitator
+X402_MAX_PAYMENT_USD=0.05
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
 # System Constraints
 MAX_BUDGET_CAP_INR=200000
 ```
@@ -311,18 +471,26 @@ If deploying or hosting Intora on **Vercel**:
    - `GEMINI_API_KEY` (Value: your Google AI Studio Gemini API key).
    - `BASE_SEPOLIA_RPC` (Value: `https://sepolia.base.org` or your dedicated RPC provider).
    - `NEXT_PUBLIC_INTENT_REGISTRY_ADDRESS` (Value: `0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f`).
-4. **Trigger a Redeployment:** Environment variables take effect during the build process. After configuring or changing `SCRAPERAPI_KEY`, trigger a new deployment or push a commit so the server runtime picks up the new environment configuration.
-5. **Security Notice:** Do **NOT** prefix `SCRAPERAPI_KEY` or `GEMINI_API_KEY` with `NEXT_PUBLIC_`. Intora ensures these keys are accessed strictly in server-side Route Handlers and never leaked to client bundles.
+   - `X402_BUYER_PRIVATE_KEY` (Value: your dedicated test agent wallet private key on Base Sepolia).
+   - `X402_SELLER_ADDRESS` (Value: `0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3`).
+   - `X402_FACILITATOR_URL` (Value: `https://x402.org/facilitator`).
+   - `X402_MAX_PAYMENT_USD` (Value: `0.05`).
+   - `NEXT_PUBLIC_APP_URL` (Value: `https://your-project.vercel.app` — required for internal Route Handler buyer-seller calls).
+4. **Trigger a Redeployment:** Environment variables take effect during the build process. After configuring or changing keys, trigger a new deployment or push a commit so the server runtime picks up the new environment configuration.
+5. **Security Notice:** Do **NOT** prefix `SCRAPERAPI_KEY`, `GEMINI_API_KEY`, or `X402_BUYER_PRIVATE_KEY` with `NEXT_PUBLIC_`. Intora ensures these keys are accessed strictly in server-side Route Handlers and never leaked to client bundles.
 
 ---
 
-## 🧪 Comprehensive Test Suite (148 Tests)
+## 🧪 Comprehensive Test Suite (192 Tests)
 
-Intora includes an end-to-end test suite of **148 automated tests** across **11 specialized test suites**:
+Intora includes an end-to-end test suite of **192 automated tests** across **12 specialized test suites**:
 
 ```bash
-# Run the complete test suite (148 tests)
+# Run the complete test suite (192 tests)
 npm test
+
+# Run only x402 protocol integration tests (9 tests)
+npm run test:x402
 ```
 
 ### Test Suite Breakdown:
@@ -339,11 +507,12 @@ npm test
 ✔ trade-off-engine.test.ts            # Total purchase cost, shipping, value scoring
 ✔ what-if-simulator.test.ts           # Scenario execution, multi-version snapshotting, diffs
 ✔ product-budget-matching.test.ts     # Target price vs. basket cap intent matching
+✔ x402.test.ts                        # x402 HTTP 402 negotiation, EIP-3009 typed auth, Base Sepolia USDC, spend caps
 ```
 
 **Results:**
-- Total Tests: `148`
-- Passed: `147`
+- Total Tests: `193`
+- Passed: `192`
 - Skipped: `1` (Opt-in live network ScraperAPI test; set `RUN_LIVE_SCRAPERAPI_TESTS=true` to run live)
 - Failed: `0`
 
@@ -351,15 +520,17 @@ npm test
 
 ## 🚀 Future Scope & Roadmap
 
-### 1. Zero-Knowledge & Confidential Verification (ZK-SNARKs)
+### 1. Autonomous Agent Settlement & x402 Payments (Completed in Week 3 ✅)
+* **Official x402 Protocol Implementation:** Integrated the official HTTP `402 Payment Required` standard on Base Sepolia (`eip155:84532`) with Base Sepolia USDC, enabling machine-to-machine micropayments for premium deep product intelligence.
+
+### 2. Zero-Knowledge & Confidential Verification (ZK-SNARKs)
 * Enable shoppers to cryptographically prove that their total order does not exceed a specified budget cap or that their cart contains only approved merchant categories, **without revealing specific items or exact quantities on-chain**.
 * Implement Circom / Groth16 zero-knowledge proofs on Base Sepolia.
 
-### 2. Autonomous Agent Settlement & x402 Payments
-* **x402 Protocol Implementation:** Integrate the HTTP `402 Payment Required` standard to allow automated machine-to-machine checkout when an on-chain commitment reaches fulfillment criteria.
-* **ERC-4337 Account Abstraction & Session Keys:** Scoped session keys allowing users to pre-authorize the agent for micro-revisions within a bounded ±5% budget tolerance without prompting MetaMask for each version increment.
+### 3. ERC-4337 Account Abstraction & Session Keys
+* Scoped session keys allowing users to pre-authorize the agent for micro-revisions within a bounded ±5% budget tolerance without prompting MetaMask for each version increment.
 
-### 3. Multi-Merchant Cross-Catalog Aggregation
+### 4. Multi-Merchant Cross-Catalog Aggregation
 * Expand beyond Amazon India to Flipkart, Blinkit, and Zepto for instant hyperlocal delivery estimation and price arbitrage.
 
 ---

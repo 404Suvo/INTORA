@@ -24,6 +24,7 @@ import { PRESET_SITUATIONS, MOCK_PLANS, ShoppingPlanData, ProductItem } from "@/
 import { generatePlan, hashPlan, optimizePlan, restorePlan, getDemoFallbackPlan } from "@/lib/stubs";
 import { TradeOffComparisonModal } from "./TradeOffComparisonModal";
 import { UserTradeOffPreference, ProductComparisonItem } from "@/lib/trade-off-engine";
+import { X402PaymentModal } from "@/components/commerce/X402PaymentModal";
 
 interface LivePlannerDemoProps {
   onApproveAndRecord?: (plan: ShoppingPlanData, hash: string) => void;
@@ -52,6 +53,11 @@ export function LivePlannerDemo({
     isTimeout?: boolean;
   } | null>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  // x402 Protocol Deep Research State
+  const [x402ModalOpen, setX402ModalOpen] = useState(false);
+  const [x402ResearchQuery, setX402ResearchQuery] = useState("essential supplies");
+  const [x402ResearchProduct, setX402ResearchProduct] = useState<string | undefined>(undefined);
 
   // Track elapsed seconds while searching to show progress
   useEffect(() => {
@@ -1021,6 +1027,19 @@ export function LivePlannerDemo({
                       Edit in Full Planner
                     </button>
                     <button
+                      type="button"
+                      onClick={() => {
+                        setX402ResearchQuery(situationPrompt || currentPlan.items[0]?.name || "essential supplies");
+                        setX402ResearchProduct(currentPlan.items[0]?.name);
+                        setX402ModalOpen(true);
+                      }}
+                      className="px-4 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-950/30 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      title="Run paid market research and counterfeit check via x402 on Base Sepolia"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>Deep Research (x402)</span>
+                    </button>
+                    <button
                       onClick={() => onApproveAndRecord?.(currentPlan, currentPlan.planHash)}
                       disabled={currentPlan.items.length === 0}
                       className="px-6 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-[#1F4D45] text-white hover:bg-[#163a34] disabled:opacity-40 disabled:cursor-not-allowed transition shadow-md flex items-center gap-2 cursor-pointer"
@@ -1050,6 +1069,13 @@ export function LivePlannerDemo({
           onSelectAlternative={handleSwitchAlternative}
         />
       )}
+
+      <X402PaymentModal
+        isOpen={x402ModalOpen}
+        onClose={() => setX402ModalOpen(false)}
+        defaultQuery={x402ResearchQuery}
+        productName={x402ResearchProduct}
+      />
     </section>
   );
 }

@@ -43,6 +43,7 @@ Rules:
    - A diff if this is a revision.
    - State the notice: "This records a commitment to your approved plan. It does not place an order."
 6. Do not automatically increase the user's budget when a feasible plan cannot be found. Explain the limitation and ask whether the user wants to adjust their budget or requirements.
+7. When the user asks for deep product research, cross-platform price comparisons, counterfeit risk audits, or seller reliability, call 'research_product_intelligence' to unlock verified research via x402 on Base Sepolia.
 `.trim();
 
 export type ChatMessage = { role: "user" | "agent"; text: string };

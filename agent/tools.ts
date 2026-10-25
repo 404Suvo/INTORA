@@ -1,7 +1,7 @@
 /**
  * SERVER-SIDE CONTROLLED TOOLS FOR GEMINI AGENT
  *
- * Implements the 8 controlled tools required by Intent-to-Commerce:
+ * Implements the 9 controlled tools required by Intent-to-Commerce:
  * 1. analyze_situation
  * 2. search_products
  * 3. optimize_bundle
@@ -10,6 +10,7 @@
  * 6. read_intent
  * 7. prepare_transaction (calldata preparation only, never signs or sends)
  * 8. verify_transaction
+ * 9. research_product_intelligence (x402 protocol micro-payment for deep research)
  */
 
 import {
@@ -22,6 +23,7 @@ import {
   type Hex,
 } from "viem";
 import { baseSepolia } from "viem/chains";
+import { executePaidResearch } from "../lib/x402-buyer";
 import {
   PRODUCT_CATALOG,
   formatInr,
@@ -789,6 +791,56 @@ export const tools: Tool[] = [
         message: matches
           ? "On-chain commitment verified! Stored plan reproduces the exact on-chain hash."
           : "CRITICAL: Hash mismatch between on-chain commitment and stored plan.",
+      };
+    },
+  },
+
+  // ─── 9. research_product_intelligence (x402 Protocol Micro-Payment) ───
+  {
+    name: "research_product_intelligence",
+    description:
+      "Query the protected Intora Deep Research Service to retrieve cross-platform price benchmarks, merchant authenticity scores, counterfeit risks, and historical discount depth using the official x402 payment protocol on Base Sepolia.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Keyword or product name to perform deep research on (e.g. 'water bottle 750ml', 'wireless earbuds', 'spiral notebooks').",
+        },
+        category: {
+          type: "string",
+          description: "Optional product category (stationery, supplies, electronics, snacks, hygiene).",
+        },
+        maxPaymentUsd: {
+          type: "number",
+          description: "Maximum payment amount in USD authorized for this research query (default: 0.05).",
+        },
+      },
+      required: ["query"],
+    },
+    run: async ({ query, category, maxPaymentUsd }, ctx) => {
+      const telemetry = await executePaidResearch({
+        query,
+        category,
+        maxSpendUsd: maxPaymentUsd ? String(maxPaymentUsd) : undefined,
+        baseUrl: ctx.baseUrl,
+      });
+
+      return {
+        service: telemetry.service,
+        status: telemetry.status,
+        network: telemetry.network,
+        quotedAmountUsd: telemetry.quotedAmountUsd,
+        token: telemetry.tokenSymbol,
+        transactionHash: telemetry.transactionHash,
+        explorerUrl: telemetry.explorerUrl,
+        requiresFunds: telemetry.requiresFunds,
+        faucetUrl: telemetry.faucetUrl,
+        errorMessage: telemetry.errorMessage,
+        researchData: telemetry.researchData || null,
+        message: telemetry.status === "Confirmed"
+          ? `Research successfully unlocked via x402 payment on Base Sepolia! Tx: ${telemetry.transactionHash}`
+          : (telemetry.errorMessage || "x402 payment required to unlock deep research."),
       };
     },
   },
