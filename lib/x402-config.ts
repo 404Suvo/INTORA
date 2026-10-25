@@ -36,6 +36,8 @@ export const DEFAULT_BASE_SEPOLIA_RPC =
 
 const AGENT_WALLET_FILE = path.join(process.cwd(), ".agent-wallet.json");
 
+let inMemoryAgentAccount: ReturnType<typeof privateKeyToAccount> | null = null;
+
 /**
  * Public client for Base Sepolia testnet queries
  */
@@ -81,12 +83,19 @@ export function getAgentAccount() {
     }
   }
 
-  // Fallback: load or generate local dedicated test-only agent wallet
+  // Fallback 1: cached in-memory agent wallet
+  if (inMemoryAgentAccount) {
+    return inMemoryAgentAccount;
+  }
+
+  // Fallback 2: load local dedicated test-only agent wallet
   try {
     if (fs.existsSync(AGENT_WALLET_FILE)) {
       const content = JSON.parse(fs.readFileSync(AGENT_WALLET_FILE, "utf8"));
       if (content?.privateKey && typeof content.privateKey === "string" && !content.privateKey.includes("_")) {
-        return privateKeyToAccount(content.privateKey as Hex);
+        const acc = privateKeyToAccount(content.privateKey as Hex);
+        inMemoryAgentAccount = acc;
+        return acc;
       }
     }
   } catch (err) {
@@ -95,13 +104,19 @@ export function getAgentAccount() {
     }
   }
 
-  // Generate a dedicated test wallet if none exists
+  // Fallback 3: Generate a dedicated test wallet in memory and attempt to persist if writable
   try {
     const newKey = generatePrivateKey();
-    fs.writeFileSync(AGENT_WALLET_FILE, JSON.stringify({ privateKey: newKey }, null, 2), "utf8");
-    return privateKeyToAccount(newKey);
+    const acc = privateKeyToAccount(newKey);
+    inMemoryAgentAccount = acc;
+    try {
+      fs.writeFileSync(AGENT_WALLET_FILE, JSON.stringify({ privateKey: newKey }, null, 2), "utf8");
+    } catch {
+      // Ignored in read-only environments (e.g. serverless)
+    }
+    return acc;
   } catch (err) {
-    console.error("[x402-config] Failed to generate or write test wallet:", err);
+    console.error("[x402-config] Failed to generate test wallet:", err);
     return null;
   }
 }

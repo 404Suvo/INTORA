@@ -10082,6 +10082,1391 @@
       "onChainCommitment": {
         "status": "uncommitted"
       }
+    },
+    "0x07abed93888408d2728b3d893ab02d8d8a30d7f4314a61e3abddb585a7449b0f_v1": {
+      "intentId": "0x07abed93888408d2728b3d893ab02d8d8a30d7f4314a61e3abddb585a7449b0f",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x07abed93888408d2728b3d893ab02d8d8a30d7f4314a61e3abddb585a7449b0f",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 50000,
+        "items": [
+          {
+            "productId": "B0HIGHVAL01",
+            "quantity": 1,
+            "unitPriceMinor": 4500000
+          }
+        ],
+        "totalMinor": 4500000,
+        "expiry": 1793547941
+      },
+      "canonicalString": "{\"budgetMinor\":50000,\"currency\":\"INR\",\"expiry\":1793547941,\"intentId\":\"0x07abed93888408d2728b3d893ab02d8d8a30d7f4314a61e3abddb585a7449b0f\",\"items\":[{\"productId\":\"B0HIGHVAL01\",\"quantity\":1,\"unitPriceMinor\":4500000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":4500000,\"version\":1}",
+      "planHash": "0xb513e4e1f6481b4e1653fc8ed6ca51470f25f6f9103de3511d89d90f44c6c87c",
+      "createdAt": "2026-10-25T15:45:41.673Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xaf1505fcb813b3cf70ea4ef98ef9ffe3131c7a70d8b57b8aa02ecac70f65afb5_v1": {
+      "intentId": "0xaf1505fcb813b3cf70ea4ef98ef9ffe3131c7a70d8b57b8aa02ecac70f65afb5",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xaf1505fcb813b3cf70ea4ef98ef9ffe3131c7a70d8b57b8aa02ecac70f65afb5",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "B0HIGHVAL01",
+            "quantity": 1,
+            "unitPriceMinor": 4500000
+          }
+        ],
+        "totalMinor": 4500000,
+        "expiry": 1793547941
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547941,\"intentId\":\"0xaf1505fcb813b3cf70ea4ef98ef9ffe3131c7a70d8b57b8aa02ecac70f65afb5\",\"items\":[{\"productId\":\"B0HIGHVAL01\",\"quantity\":1,\"unitPriceMinor\":4500000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":4500000,\"version\":1}",
+      "planHash": "0x56fbc22a4f38a7c1871e3011ccff23eeb7c525dd2600b055bb6df7309ca3d133",
+      "createdAt": "2026-10-25T15:45:41.691Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x6f281a1a9665f9297400a026c9c88e453dc3633364b730c5fed9eb7d3aac2671_v1": {
+      "intentId": "0x6f281a1a9665f9297400a026c9c88e453dc3633364b730c5fed9eb7d3aac2671",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x6f281a1a9665f9297400a026c9c88e453dc3633364b730c5fed9eb7d3aac2671",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 5000000,
+        "items": [
+          {
+            "productId": "B0HIGHVAL01",
+            "quantity": 1,
+            "unitPriceMinor": 4500000
+          }
+        ],
+        "totalMinor": 4500000,
+        "expiry": 1793547941
+      },
+      "canonicalString": "{\"budgetMinor\":5000000,\"currency\":\"INR\",\"expiry\":1793547941,\"intentId\":\"0x6f281a1a9665f9297400a026c9c88e453dc3633364b730c5fed9eb7d3aac2671\",\"items\":[{\"productId\":\"B0HIGHVAL01\",\"quantity\":1,\"unitPriceMinor\":4500000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":4500000,\"version\":1}",
+      "planHash": "0xaf9505b2bac416c9afc2a0fa495a3a9bb77f618e5aba4233fd193fc0acec713e",
+      "createdAt": "2026-10-25T15:45:41.707Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x2127798b25acb973827d8e3ebf7f10e52a5ca4f3df3b07d8ae679f27bd704921_v1": {
+      "intentId": "0x2127798b25acb973827d8e3ebf7f10e52a5ca4f3df3b07d8ae679f27bd704921",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x2127798b25acb973827d8e3ebf7f10e52a5ca4f3df3b07d8ae679f27bd704921",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 15000000,
+        "items": [
+          {
+            "productId": "B0HIGHVAL01",
+            "quantity": 1,
+            "unitPriceMinor": 4500000
+          }
+        ],
+        "totalMinor": 4500000,
+        "expiry": 1793547941
+      },
+      "canonicalString": "{\"budgetMinor\":15000000,\"currency\":\"INR\",\"expiry\":1793547941,\"intentId\":\"0x2127798b25acb973827d8e3ebf7f10e52a5ca4f3df3b07d8ae679f27bd704921\",\"items\":[{\"productId\":\"B0HIGHVAL01\",\"quantity\":1,\"unitPriceMinor\":4500000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":4500000,\"version\":1}",
+      "planHash": "0x199f3e7ce12783068cb7782101b3f65bfba8dfe63d1bb51cde35ccdb9259be65",
+      "createdAt": "2026-10-25T15:45:41.723Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x208ac2c1427592fda9ed6d71cab8dbd15d3e285a4c979f85fb9ea734d320159d_v1": {
+      "intentId": "0x208ac2c1427592fda9ed6d71cab8dbd15d3e285a4c979f85fb9ea734d320159d",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x208ac2c1427592fda9ed6d71cab8dbd15d3e285a4c979f85fb9ea734d320159d",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 20000000,
+        "items": [
+          {
+            "productId": "B0HIGHVAL01",
+            "quantity": 1,
+            "unitPriceMinor": 4500000
+          }
+        ],
+        "totalMinor": 4500000,
+        "expiry": 1793547941
+      },
+      "canonicalString": "{\"budgetMinor\":20000000,\"currency\":\"INR\",\"expiry\":1793547941,\"intentId\":\"0x208ac2c1427592fda9ed6d71cab8dbd15d3e285a4c979f85fb9ea734d320159d\",\"items\":[{\"productId\":\"B0HIGHVAL01\",\"quantity\":1,\"unitPriceMinor\":4500000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":4500000,\"version\":1}",
+      "planHash": "0xa85bc6ad0b8ff3ac0c6332c2a1ded688df323591ef53f1b38f81ff73ccd9c0b0",
+      "createdAt": "2026-10-25T15:45:41.739Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x086ccea0b0b549512d1f592d9e470490da7985fd4776f58af299d480850b61cb_v1": {
+      "intentId": "0x086ccea0b0b549512d1f592d9e470490da7985fd4776f58af299d480850b61cb",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x086ccea0b0b549512d1f592d9e470490da7985fd4776f58af299d480850b61cb",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 100000,
+        "items": [
+          {
+            "productId": "B0TESTAPI01",
+            "quantity": 1,
+            "unitPriceMinor": 21000
+          },
+          {
+            "productId": "B0TESTAPI02",
+            "quantity": 1,
+            "unitPriceMinor": 39000
+          }
+        ],
+        "totalMinor": 60000,
+        "expiry": 1793547943
+      },
+      "canonicalString": "{\"budgetMinor\":100000,\"currency\":\"INR\",\"expiry\":1793547943,\"intentId\":\"0x086ccea0b0b549512d1f592d9e470490da7985fd4776f58af299d480850b61cb\",\"items\":[{\"productId\":\"B0TESTAPI01\",\"quantity\":1,\"unitPriceMinor\":21000},{\"productId\":\"B0TESTAPI02\",\"quantity\":1,\"unitPriceMinor\":39000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":60000,\"version\":1}",
+      "planHash": "0x92c1c9af27520f52a3e09ac1177adb7356493c369909c0f3d679b5e66cf9a483",
+      "createdAt": "2026-10-25T15:45:43.068Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e_v1": {
+      "intentId": "0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 2,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "gel-pen-set",
+            "quantity": 2,
+            "unitPriceMinor": 12000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          }
+        ],
+        "totalMinor": 218900,
+        "expiry": 1793547951
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547951,\"intentId\":\"0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":2,\"unitPriceMinor\":25000},{\"productId\":\"gel-pen-set\",\"quantity\":2,\"unitPriceMinor\":12000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":218900,\"version\":1}",
+      "planHash": "0x5b2886ed2f9b599ae0570790dcc56adfd6553aa4aea82ab44d817d8d54332468",
+      "createdAt": "2026-10-25T15:45:51.677Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e_v2": {
+      "intentId": "0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 200000,
+        "items": [
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 2,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "energy-bar-box",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          },
+          {
+            "productId": "gel-pen-set",
+            "quantity": 2,
+            "unitPriceMinor": 12000
+          },
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          }
+        ],
+        "totalMinor": 149000,
+        "expiry": 1793547951
+      },
+      "canonicalString": "{\"budgetMinor\":200000,\"currency\":\"INR\",\"expiry\":1793547951,\"intentId\":\"0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":2,\"unitPriceMinor\":25000},{\"productId\":\"energy-bar-box\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"gel-pen-set\",\"quantity\":2,\"unitPriceMinor\":12000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":149000,\"version\":2}",
+      "planHash": "0x88d97707e233bae10af2dd4d8548689dbd61dd76f2cebdce6caf16656a2b1d49",
+      "createdAt": "2026-10-25T15:45:51.718Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3_v1": {
+      "intentId": "0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 100000,
+        "items": [
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          }
+        ],
+        "totalMinor": 25000,
+        "expiry": 1793547951
+      },
+      "canonicalString": "{\"budgetMinor\":100000,\"currency\":\"INR\",\"expiry\":1793547951,\"intentId\":\"0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":25000,\"version\":1}",
+      "planHash": "0xdfac8946f3c44d0d97893eb1159857f8d16784fdfe901881040674fefb79519e",
+      "createdAt": "2026-10-25T15:45:51.754Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3_v2": {
+      "intentId": "0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 100000,
+        "items": [
+          {
+            "productId": "gel-pen-set",
+            "quantity": 1,
+            "unitPriceMinor": 12000
+          }
+        ],
+        "totalMinor": 12000,
+        "expiry": 1793547951
+      },
+      "canonicalString": "{\"budgetMinor\":100000,\"currency\":\"INR\",\"expiry\":1793547951,\"intentId\":\"0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3\",\"items\":[{\"productId\":\"gel-pen-set\",\"quantity\":1,\"unitPriceMinor\":12000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":12000,\"version\":2}",
+      "planHash": "0xad2c6f8a0674f524bf7ba6871eeb2af209ec6586f1358399e821e1442e95cef0",
+      "createdAt": "2026-10-25T15:45:51.804Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xd87116ee1c7ed14ce410fe09c4dd10c4c53b97972f34d15264f47e39a78eb1ef_v1": {
+      "intentId": "0xd87116ee1c7ed14ce410fe09c4dd10c4c53b97972f34d15264f47e39a78eb1ef",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xd87116ee1c7ed14ce410fe09c4dd10c4c53b97972f34d15264f47e39a78eb1ef",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 100000,
+        "items": [
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          }
+        ],
+        "totalMinor": 25000,
+        "expiry": 1793547951
+      },
+      "canonicalString": "{\"budgetMinor\":100000,\"currency\":\"INR\",\"expiry\":1793547951,\"intentId\":\"0xd87116ee1c7ed14ce410fe09c4dd10c4c53b97972f34d15264f47e39a78eb1ef\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":25000,\"version\":1}",
+      "planHash": "0xf79af19f5e5362716dec07f1a64c698e1ad4c061647c8f9a9d787b4d41a4a3e2",
+      "createdAt": "2026-10-25T15:45:51.827Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xc595e832b7373782624b173a46e9d7f9f6477565bc84b55adf39885b675beb7c_v1": {
+      "intentId": "0xc595e832b7373782624b173a46e9d7f9f6477565bc84b55adf39885b675beb7c",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xc595e832b7373782624b173a46e9d7f9f6477565bc84b55adf39885b675beb7c",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 10000000,
+        "items": [
+          {
+            "productId": "B0TESTLAP01",
+            "quantity": 1,
+            "unitPriceMinor": 9499000
+          }
+        ],
+        "totalMinor": 9499000,
+        "expiry": 1793547953
+      },
+      "canonicalString": "{\"budgetMinor\":10000000,\"currency\":\"INR\",\"expiry\":1793547953,\"intentId\":\"0xc595e832b7373782624b173a46e9d7f9f6477565bc84b55adf39885b675beb7c\",\"items\":[{\"productId\":\"B0TESTLAP01\",\"quantity\":1,\"unitPriceMinor\":9499000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":9499000,\"version\":1}",
+      "planHash": "0xbb5f9797e0e1e8a9a031cf4401f33bf701de2c04009657ba429778bd4d256437",
+      "createdAt": "2026-10-25T15:45:53.773Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49_v1": {
+      "intentId": "0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 10000000,
+        "items": [
+          {
+            "productId": "B0TESTLAP01",
+            "quantity": 1,
+            "unitPriceMinor": 9499000
+          }
+        ],
+        "totalMinor": 9499000,
+        "expiry": 1793547953
+      },
+      "canonicalString": "{\"budgetMinor\":10000000,\"currency\":\"INR\",\"expiry\":1793547953,\"intentId\":\"0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49\",\"items\":[{\"productId\":\"B0TESTLAP01\",\"quantity\":1,\"unitPriceMinor\":9499000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":9499000,\"version\":1}",
+      "planHash": "0x6172db65e4c4d7a95d744be558d9ccf2e597faee964f21f094f0e27064c0560d",
+      "createdAt": "2026-10-25T15:45:53.864Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49_v2": {
+      "intentId": "0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 8000000,
+        "items": [
+          {
+            "productId": "B0TESTLAP01",
+            "quantity": 1,
+            "unitPriceMinor": 9499000
+          }
+        ],
+        "totalMinor": 9499000,
+        "expiry": 1793547953
+      },
+      "canonicalString": "{\"budgetMinor\":8000000,\"currency\":\"INR\",\"expiry\":1793547953,\"intentId\":\"0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49\",\"items\":[{\"productId\":\"B0TESTLAP01\",\"quantity\":1,\"unitPriceMinor\":9499000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":9499000,\"version\":2}",
+      "planHash": "0x9af1ac2df4464d71be8fa5b49d56a0333a8f052cc0d7f45cdb4f5b93efc6edd5",
+      "createdAt": "2026-10-25T15:45:53.988Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xc29958d093e5e965710523db751a2a451962531c82bbb5f94e35223ac92e9318_v1": {
+      "intentId": "0xc29958d093e5e965710523db751a2a451962531c82bbb5f94e35223ac92e9318",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xc29958d093e5e965710523db751a2a451962531c82bbb5f94e35223ac92e9318",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          }
+        ],
+        "totalMinor": 25000,
+        "expiry": 1793547956
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547956,\"intentId\":\"0xc29958d093e5e965710523db751a2a451962531c82bbb5f94e35223ac92e9318\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":25000,\"version\":1}",
+      "planHash": "0x90e8a93c9733eed02aef43eb4fef20fc9280b049765f2124de3a9a706426e802",
+      "createdAt": "2026-10-25T15:45:56.676Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e_v1": {
+      "intentId": "0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 2,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "energy-bar-box",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          },
+          {
+            "productId": "gel-pen-set",
+            "quantity": 2,
+            "unitPriceMinor": 12000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          }
+        ],
+        "totalMinor": 248900,
+        "expiry": 1793547958
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547958,\"intentId\":\"0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":2,\"unitPriceMinor\":25000},{\"productId\":\"energy-bar-box\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"gel-pen-set\",\"quantity\":2,\"unitPriceMinor\":12000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":248900,\"version\":1}",
+      "planHash": "0x7f4800ec62421d7f2ec01ef188368dcab835b2b27c62ca1aba58ce162b0ef87d",
+      "createdAt": "2026-10-25T15:45:58.591Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e_v2": {
+      "intentId": "0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 200000,
+        "items": [
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 2,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "energy-bar-box",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          },
+          {
+            "productId": "gel-pen-set",
+            "quantity": 2,
+            "unitPriceMinor": 12000
+          },
+          {
+            "productId": "mini-first-aid-kit",
+            "quantity": 1,
+            "unitPriceMinor": 22000
+          },
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          }
+        ],
+        "totalMinor": 171000,
+        "expiry": 1793547958
+      },
+      "canonicalString": "{\"budgetMinor\":200000,\"currency\":\"INR\",\"expiry\":1793547958,\"intentId\":\"0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":2,\"unitPriceMinor\":25000},{\"productId\":\"energy-bar-box\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"gel-pen-set\",\"quantity\":2,\"unitPriceMinor\":12000},{\"productId\":\"mini-first-aid-kit\",\"quantity\":1,\"unitPriceMinor\":22000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":171000,\"version\":2}",
+      "planHash": "0xe5afdd7971caab0cecd708aeb5761da783ecb60696703d73f75cf4ca03b05063",
+      "createdAt": "2026-10-25T15:45:58.682Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x941c8f3ad59a63b42e17f0325f2757e627499a3fd30908d030838d7596070cdb_v1": {
+      "intentId": "0x941c8f3ad59a63b42e17f0325f2757e627499a3fd30908d030838d7596070cdb",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x941c8f3ad59a63b42e17f0325f2757e627499a3fd30908d030838d7596070cdb",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 250000,
+        "items": [
+          {
+            "productId": "B0MOCKSKU02",
+            "quantity": 1,
+            "unitPriceMinor": 129900
+          },
+          {
+            "productId": "B0MOCKSKU01",
+            "quantity": 1,
+            "unitPriceMinor": 49900
+          }
+        ],
+        "totalMinor": 179800,
+        "expiry": 1793547960
+      },
+      "canonicalString": "{\"budgetMinor\":250000,\"currency\":\"INR\",\"expiry\":1793547960,\"intentId\":\"0x941c8f3ad59a63b42e17f0325f2757e627499a3fd30908d030838d7596070cdb\",\"items\":[{\"productId\":\"B0MOCKSKU01\",\"quantity\":1,\"unitPriceMinor\":49900},{\"productId\":\"B0MOCKSKU02\",\"quantity\":1,\"unitPriceMinor\":129900}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":179800,\"version\":1}",
+      "planHash": "0x18aa5167dd97c69d4608f2eab1344bf228ab721d6ee77c84640813aaca9f2960",
+      "createdAt": "2026-10-25T15:46:00.167Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x7ec93e36cd16d4a27e2355f399c1dcdabaa7c215152e954719a1e072bd7490aa_v1": {
+      "intentId": "0x7ec93e36cd16d4a27e2355f399c1dcdabaa7c215152e954719a1e072bd7490aa",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x7ec93e36cd16d4a27e2355f399c1dcdabaa7c215152e954719a1e072bd7490aa",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "B0MOCKSKU02",
+            "quantity": 1,
+            "unitPriceMinor": 129900
+          },
+          {
+            "productId": "B0MOCKSKU01",
+            "quantity": 1,
+            "unitPriceMinor": 49900
+          },
+          {
+            "productId": "B0BOTTLE01",
+            "quantity": 1,
+            "unitPriceMinor": 69900
+          }
+        ],
+        "totalMinor": 249700,
+        "expiry": 1793547960
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547960,\"intentId\":\"0x7ec93e36cd16d4a27e2355f399c1dcdabaa7c215152e954719a1e072bd7490aa\",\"items\":[{\"productId\":\"B0BOTTLE01\",\"quantity\":1,\"unitPriceMinor\":69900},{\"productId\":\"B0MOCKSKU01\",\"quantity\":1,\"unitPriceMinor\":49900},{\"productId\":\"B0MOCKSKU02\",\"quantity\":1,\"unitPriceMinor\":129900}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":249700,\"version\":1}",
+      "planHash": "0xb6461656412fca54835d66f81a5027ef515589f8de11cbfcf2f5694be7c22b92",
+      "createdAt": "2026-10-25T15:46:00.385Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xba5902ca157557332c91c869e8b71af36ffcbc3e18d316894a40aad9643b0739_v1": {
+      "intentId": "0xba5902ca157557332c91c869e8b71af36ffcbc3e18d316894a40aad9643b0739",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xba5902ca157557332c91c869e8b71af36ffcbc3e18d316894a40aad9643b0739",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 200000,
+        "items": [
+          {
+            "productId": "B0ROSEPART01",
+            "quantity": 1,
+            "unitPriceMinor": 89900
+          }
+        ],
+        "totalMinor": 89900,
+        "expiry": 1793547963
+      },
+      "canonicalString": "{\"budgetMinor\":200000,\"currency\":\"INR\",\"expiry\":1793547963,\"intentId\":\"0xba5902ca157557332c91c869e8b71af36ffcbc3e18d316894a40aad9643b0739\",\"items\":[{\"productId\":\"B0ROSEPART01\",\"quantity\":1,\"unitPriceMinor\":89900}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":89900,\"version\":1}",
+      "planHash": "0x8e01ea3ac45afaf7a2baaaa8e14c72e4a09d512dd77755e3f8e220e973ba81d1",
+      "createdAt": "2026-10-25T15:46:03.713Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xe6fc84967f550a2379104daf676a50c70391ce13e3027c9ff20c11b572b96877_v1": {
+      "intentId": "0xe6fc84967f550a2379104daf676a50c70391ce13e3027c9ff20c11b572b96877",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xe6fc84967f550a2379104daf676a50c70391ce13e3027c9ff20c11b572b96877",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 10000000,
+        "items": [
+          {
+            "productId": "B0COMBINED01",
+            "quantity": 1,
+            "unitPriceMinor": 9850000
+          }
+        ],
+        "totalMinor": 9850000,
+        "expiry": 1793547963
+      },
+      "canonicalString": "{\"budgetMinor\":10000000,\"currency\":\"INR\",\"expiry\":1793547963,\"intentId\":\"0xe6fc84967f550a2379104daf676a50c70391ce13e3027c9ff20c11b572b96877\",\"items\":[{\"productId\":\"B0COMBINED01\",\"quantity\":1,\"unitPriceMinor\":9850000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":9850000,\"version\":1}",
+      "planHash": "0xc37b5846e3150528a7c16d887a2ac30d264f9ee47f8160bf8e7840dec02ebc1f",
+      "createdAt": "2026-10-25T15:46:03.887Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xd2f04e68d2c4f3ec6d0f4a3ccd7c807e67b671872e306fd88aceb4f9d555680c_v1": {
+      "intentId": "0xd2f04e68d2c4f3ec6d0f4a3ccd7c807e67b671872e306fd88aceb4f9d555680c",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xd2f04e68d2c4f3ec6d0f4a3ccd7c807e67b671872e306fd88aceb4f9d555680c",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 500000,
+        "items": [
+          {
+            "productId": "B0ASYNC001",
+            "quantity": 1,
+            "unitPriceMinor": 199900
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547963
+      },
+      "canonicalString": "{\"budgetMinor\":500000,\"currency\":\"INR\",\"expiry\":1793547963,\"intentId\":\"0xd2f04e68d2c4f3ec6d0f4a3ccd7c807e67b671872e306fd88aceb4f9d555680c\",\"items\":[{\"productId\":\"B0ASYNC001\",\"quantity\":1,\"unitPriceMinor\":199900}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0x36f7a73955ef484be74f3765f973d2b0e556fea0c64320e6a844952d56f1c320",
+      "createdAt": "2026-10-25T15:46:03.963Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777_v1": {
+      "intentId": "0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547965
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547965,\"intentId\":\"0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0x4b3e40358a1fe526191ece858e3ea05bb632091585418612fe77326c742b5bf3",
+      "createdAt": "2026-10-25T15:46:05.292Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777_v2": {
+      "intentId": "0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 200000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547965
+      },
+      "canonicalString": "{\"budgetMinor\":200000,\"currency\":\"INR\",\"expiry\":1793547965,\"intentId\":\"0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":2}",
+      "planHash": "0xe16bab62881985b7abda93e7e1de7f9fc79fdb3e459da77c57b35635f8267b2c",
+      "createdAt": "2026-10-25T15:46:05.459Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913_v1": {
+      "intentId": "0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547965
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547965,\"intentId\":\"0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0x1fc43c08ad82cd662a85ec0ab616b9ec33611315f300ce05e7d24bf9cd69b562",
+      "createdAt": "2026-10-25T15:46:05.588Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913_v2": {
+      "intentId": "0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 2,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 2,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 2,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 299900,
+        "expiry": 1793547965
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547965,\"intentId\":\"0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":2,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":2,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":2,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":299900,\"version\":2}",
+      "planHash": "0xdc035a74759b7e165fa69749b3c1756cb8ce5386eaf8ba2649674413ce9a622c",
+      "createdAt": "2026-10-25T15:46:05.733Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b_v1": {
+      "intentId": "0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547965
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547965,\"intentId\":\"0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0xaf94391bb51f7f5cf62b5f5d8e3e4dbe42c22ee0f9a6be82d43be619862ca3e1",
+      "createdAt": "2026-10-25T15:46:05.816Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b_v2": {
+      "intentId": "0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          }
+        ],
+        "totalMinor": 169900,
+        "expiry": 1793547965
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547965,\"intentId\":\"0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":169900,\"version\":2}",
+      "planHash": "0x09138c4b151a3f8822b313cd1eb7beec187d1dbfb04d2bba106f5dff4fd279bc",
+      "createdAt": "2026-10-25T15:46:05.939Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28_v1": {
+      "intentId": "0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0x3307b798961802862cc7fa29047069620a3134b0328342b6da9b83e202430fdd",
+      "createdAt": "2026-10-25T15:46:06.048Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28_v2": {
+      "intentId": "0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 150000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "gel-pen-set",
+            "quantity": 1,
+            "unitPriceMinor": 12000
+          }
+        ],
+        "totalMinor": 156900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":150000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28\",\"items\":[{\"productId\":\"gel-pen-set\",\"quantity\":1,\"unitPriceMinor\":12000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":156900,\"version\":2}",
+      "planHash": "0x8bb5342a3e85903bfbfc24fd4b7fe56990e1e04182e3f1ec4f9f804e09a5a5cc",
+      "createdAt": "2026-10-25T15:46:06.153Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61_v1": {
+      "intentId": "0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0x3295a4e54792325cf6d23b8ce6eb4af2e6d52835161e74ba487a9e918f095dd8",
+      "createdAt": "2026-10-25T15:46:06.262Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61_v2": {
+      "intentId": "0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 400000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":400000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":2}",
+      "planHash": "0x73bb3d8aeedc9676689e8556d863282776bae7da2ab93a08e261024ac851a812",
+      "createdAt": "2026-10-25T15:46:06.348Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62_v1": {
+      "intentId": "0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0xf55710fd69cbcca9d00d38c72e7c51c0e041b49ae9f33718cdf9e4bf1e80854c",
+      "createdAt": "2026-10-25T15:46:06.469Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62_v2": {
+      "intentId": "0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 50000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "gel-pen-set",
+            "quantity": 1,
+            "unitPriceMinor": 12000
+          }
+        ],
+        "totalMinor": 156900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":50000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62\",\"items\":[{\"productId\":\"gel-pen-set\",\"quantity\":1,\"unitPriceMinor\":12000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":156900,\"version\":2}",
+      "planHash": "0x847bddc40195b4efdc01a8a292f95d356f7d8d15f7ac1d5beac6c965eb19607a",
+      "createdAt": "2026-10-25T15:46:06.564Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e_v1": {
+      "intentId": "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0x38aa65e62133c5911ce6a31a1591519e0c0ab183770c58fd18f6c2665aacc962",
+      "createdAt": "2026-10-25T15:46:06.647Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e_v2": {
+      "intentId": "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e",
+      "version": 2,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e",
+        "version": 2,
+        "currency": "INR",
+        "budgetMinor": 250000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":250000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":2}",
+      "planHash": "0x60f19ebb76a35934934d9619f58242702ea4a74e38ee7cd41da734af0629f968",
+      "createdAt": "2026-10-25T15:46:06.736Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e_v3": {
+      "intentId": "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e",
+      "version": 3,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e",
+        "version": 3,
+        "currency": "INR",
+        "budgetMinor": 250000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 2,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "gel-pen-set",
+            "quantity": 2,
+            "unitPriceMinor": 12000
+          }
+        ],
+        "totalMinor": 213900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":250000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e\",\"items\":[{\"productId\":\"gel-pen-set\",\"quantity\":2,\"unitPriceMinor\":12000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"stainless-water-bottle\",\"quantity\":2,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":213900,\"version\":3}",
+      "planHash": "0xe7cc7d9fa3d87aa909b365a5c66189dcc50236a132f2f515cc80278ff0aced11",
+      "createdAt": "2026-10-25T15:46:06.867Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e_v4": {
+      "intentId": "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e",
+      "version": 4,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e",
+        "version": 4,
+        "currency": "INR",
+        "budgetMinor": 500000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547966
+      },
+      "canonicalString": "{\"budgetMinor\":500000,\"currency\":\"INR\",\"expiry\":1793547966,\"intentId\":\"0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":4}",
+      "planHash": "0x76e73116df75fb6329139ac430c7b8c28642fe819084f7d0105d573dcb3459c1",
+      "createdAt": "2026-10-25T15:46:06.966Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x916aea519da944f240b4ee362ab1539d9b7f724597829ee2c257cc2898082384_v1": {
+      "intentId": "0x916aea519da944f240b4ee362ab1539d9b7f724597829ee2c257cc2898082384",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x916aea519da944f240b4ee362ab1539d9b7f724597829ee2c257cc2898082384",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "stainless-water-bottle",
+            "quantity": 1,
+            "unitPriceMinor": 45000
+          },
+          {
+            "productId": "power-bank-10000",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "college-notebook-pack",
+            "quantity": 1,
+            "unitPriceMinor": 25000
+          },
+          {
+            "productId": "snack-bar-pack",
+            "quantity": 1,
+            "unitPriceMinor": 30000
+          }
+        ],
+        "totalMinor": 199900,
+        "expiry": 1793547967
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793547967,\"intentId\":\"0x916aea519da944f240b4ee362ab1539d9b7f724597829ee2c257cc2898082384\",\"items\":[{\"productId\":\"college-notebook-pack\",\"quantity\":1,\"unitPriceMinor\":25000},{\"productId\":\"power-bank-10000\",\"quantity\":1,\"unitPriceMinor\":99900},{\"productId\":\"snack-bar-pack\",\"quantity\":1,\"unitPriceMinor\":30000},{\"productId\":\"stainless-water-bottle\",\"quantity\":1,\"unitPriceMinor\":45000}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":199900,\"version\":1}",
+      "planHash": "0xab6700e7a88bef315df1d4483bacbab700388c67263e1ed2c1c321eedea4afaf",
+      "createdAt": "2026-10-25T15:46:07.045Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
+    },
+    "0x520e2c9604e34e63dd775abfec764c326b1de64a79c5aa3d035183ad2ac9142c_v1": {
+      "intentId": "0x520e2c9604e34e63dd775abfec764c326b1de64a79c5aa3d035183ad2ac9142c",
+      "version": 1,
+      "plan": {
+        "schemaVersion": "1.0.0",
+        "intentId": "0x520e2c9604e34e63dd775abfec764c326b1de64a79c5aa3d035183ad2ac9142c",
+        "version": 1,
+        "currency": "INR",
+        "budgetMinor": 300000,
+        "items": [
+          {
+            "productId": "B0HL6LCWQL",
+            "quantity": 1,
+            "unitPriceMinor": 99900
+          },
+          {
+            "productId": "B0GVYBCQKJ",
+            "quantity": 1,
+            "unitPriceMinor": 21600
+          },
+          {
+            "productId": "B00L22B5ZO",
+            "quantity": 1,
+            "unitPriceMinor": 93500
+          },
+          {
+            "productId": "B0CC9P4HHW",
+            "quantity": 1,
+            "unitPriceMinor": 67900
+          },
+          {
+            "productId": "B0DSFHP4H2",
+            "quantity": 1,
+            "unitPriceMinor": 15900
+          }
+        ],
+        "totalMinor": 298800,
+        "expiry": 1793548276
+      },
+      "canonicalString": "{\"budgetMinor\":300000,\"currency\":\"INR\",\"expiry\":1793548276,\"intentId\":\"0x520e2c9604e34e63dd775abfec764c326b1de64a79c5aa3d035183ad2ac9142c\",\"items\":[{\"productId\":\"B00L22B5ZO\",\"quantity\":1,\"unitPriceMinor\":93500},{\"productId\":\"B0CC9P4HHW\",\"quantity\":1,\"unitPriceMinor\":67900},{\"productId\":\"B0DSFHP4H2\",\"quantity\":1,\"unitPriceMinor\":15900},{\"productId\":\"B0GVYBCQKJ\",\"quantity\":1,\"unitPriceMinor\":21600},{\"productId\":\"B0HL6LCWQL\",\"quantity\":1,\"unitPriceMinor\":99900}],\"schemaVersion\":\"1.0.0\",\"totalMinor\":298800,\"version\":1}",
+      "planHash": "0xc87f2b05161cd4bdf9072abf6f4a2a358282cba897f606529ceb84aac33f335b",
+      "createdAt": "2026-10-25T15:51:16.596Z",
+      "onChainCommitment": {
+        "status": "uncommitted"
+      }
     }
   },
   "intentVersions": {
@@ -10753,6 +12138,100 @@
       1
     ],
     "0xa9d0fa7b57cf5e99d3ebb66aa5959d4c5bc2b39b908f9bba0472e3dcc732f802": [
+      1
+    ],
+    "0x07abed93888408d2728b3d893ab02d8d8a30d7f4314a61e3abddb585a7449b0f": [
+      1
+    ],
+    "0xaf1505fcb813b3cf70ea4ef98ef9ffe3131c7a70d8b57b8aa02ecac70f65afb5": [
+      1
+    ],
+    "0x6f281a1a9665f9297400a026c9c88e453dc3633364b730c5fed9eb7d3aac2671": [
+      1
+    ],
+    "0x2127798b25acb973827d8e3ebf7f10e52a5ca4f3df3b07d8ae679f27bd704921": [
+      1
+    ],
+    "0x208ac2c1427592fda9ed6d71cab8dbd15d3e285a4c979f85fb9ea734d320159d": [
+      1
+    ],
+    "0x086ccea0b0b549512d1f592d9e470490da7985fd4776f58af299d480850b61cb": [
+      1
+    ],
+    "0x76170b920a85c61cd26e6500d36cc6abae657b83f6c342abf65a6f9e530c9c5e": [
+      1,
+      2
+    ],
+    "0x3bf8a8314ee2b023e1c2b8407de5c0ca5be465036b8fbd8ee43aff33132e0fd3": [
+      1,
+      2
+    ],
+    "0xd87116ee1c7ed14ce410fe09c4dd10c4c53b97972f34d15264f47e39a78eb1ef": [
+      1
+    ],
+    "0xc595e832b7373782624b173a46e9d7f9f6477565bc84b55adf39885b675beb7c": [
+      1
+    ],
+    "0xf3f52cfd98c10b9697d2118f2cc986fcea5168ac76d1307e20a5eb203fc3cc49": [
+      1,
+      2
+    ],
+    "0xc29958d093e5e965710523db751a2a451962531c82bbb5f94e35223ac92e9318": [
+      1
+    ],
+    "0xd359d525044e3f3949d4077fb5382b0daf763efdb760ce92ede5f31b1d8e164e": [
+      1,
+      2
+    ],
+    "0x941c8f3ad59a63b42e17f0325f2757e627499a3fd30908d030838d7596070cdb": [
+      1
+    ],
+    "0x7ec93e36cd16d4a27e2355f399c1dcdabaa7c215152e954719a1e072bd7490aa": [
+      1
+    ],
+    "0xba5902ca157557332c91c869e8b71af36ffcbc3e18d316894a40aad9643b0739": [
+      1
+    ],
+    "0xe6fc84967f550a2379104daf676a50c70391ce13e3027c9ff20c11b572b96877": [
+      1
+    ],
+    "0xd2f04e68d2c4f3ec6d0f4a3ccd7c807e67b671872e306fd88aceb4f9d555680c": [
+      1
+    ],
+    "0x0922f26d7ebbec3857e452a9bf543591d34a70b26aaea5b33935b37f10978777": [
+      1,
+      2
+    ],
+    "0xd266fd62ad4fd8fc765946a3f114cc4ab0cd7a809caf51511766bbecdda9e913": [
+      1,
+      2
+    ],
+    "0x273db1562977a2efac9b7486b4fbec059aaa8f52690a3bba68309c5a392c817b": [
+      1,
+      2
+    ],
+    "0x222ea4f86ecc60181b1040933fc3cc3cb0a37e1a55349ef78e30c236fcc99f28": [
+      1,
+      2
+    ],
+    "0x92defb777b38690e2ba254c9527a6f1654f61aeee1a465fdec797a319bb49a61": [
+      1,
+      2
+    ],
+    "0xbc9d94f696b06f3181550b0583ee605f1fd7573f062d99d2d2aa3ceb8946bf62": [
+      1,
+      2
+    ],
+    "0xbefa311589233916b90722876e9926b03e055a96a1fbaa22d149854fb4cd269e": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "0x916aea519da944f240b4ee362ab1539d9b7f724597829ee2c257cc2898082384": [
+      1
+    ],
+    "0x520e2c9604e34e63dd775abfec764c326b1de64a79c5aa3d035183ad2ac9142c": [
       1
     ]
   }

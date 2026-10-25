@@ -13,6 +13,36 @@ let cachedServer: x402ResourceServer | null = null;
 let serverInitPromise: Promise<x402ResourceServer> | null = null;
 
 /**
+ * Resilient facilitator client that provides fallback supported kinds
+ * if the remote facilitator endpoint is unreachable or offline during startup.
+ */
+class ResilientFacilitatorClient extends HTTPFacilitatorClient {
+  override async getSupported() {
+    try {
+      return await super.getSupported();
+    } catch (err: any) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "[x402-seller] Remote facilitator unreachable for getSupported, using fallback static kinds:",
+          err?.message || err
+        );
+      }
+      return {
+        kinds: [
+          {
+            x402Version: 2,
+            scheme: "exact",
+            network: X402_NETWORK,
+          },
+        ],
+        extensions: [],
+        signers: {},
+      };
+    }
+  }
+}
+
+/**
  * Returns a singleton instance of the official x402 Resource Server
  * registered for Base Sepolia EVM exact payments.
  */
@@ -21,7 +51,7 @@ export async function getX402ResourceServer(): Promise<x402ResourceServer> {
 
   if (!serverInitPromise) {
     serverInitPromise = (async () => {
-      const facilitator = new HTTPFacilitatorClient({
+      const facilitator = new ResilientFacilitatorClient({
         url: X402_FACILITATOR_URL,
         timeoutMs: 25_000,
       });

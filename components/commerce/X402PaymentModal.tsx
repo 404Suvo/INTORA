@@ -245,6 +245,8 @@ export function X402PaymentModal({
                 <span>
                   {typeof agentAddress === "string" && agentAddress.startsWith("0x")
                     ? `${agentAddress.slice(0, 8)}...${agentAddress.slice(-6)}`
+                    : agentWallet?.configured === false
+                    ? "Not configured"
                     : agentAddress}
                 </span>
                 {typeof agentAddress === "string" && agentAddress.startsWith("0x") && (
@@ -281,8 +283,18 @@ export function X402PaymentModal({
               </div>
             </div>
 
+            {/* Wallet Not Configured Banner */}
+            {agentWallet && agentWallet.configured === false && (
+              <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-rose-500/20 bg-rose-950/20 text-rose-300 text-xs">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="size-4 shrink-0 text-rose-400" />
+                  <span>Dedicated test agent wallet is not configured. Set <code className="bg-rose-900/40 px-1 py-0.5 rounded text-[11px] font-mono">X402_BUYER_PRIVATE_KEY</code> in backend environment.</span>
+                </div>
+              </div>
+            )}
+
             {/* Testnet Faucet Banner if insufficient funds */}
-            {agentWallet && !agentWallet?.balances?.hasUsdcFunds && (
+            {agentWallet && agentWallet.configured && !agentWallet?.balances?.hasUsdcFunds && (
               <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-amber-500/20 bg-amber-950/20 text-amber-300 text-xs">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="size-4 shrink-0 text-amber-400" />
@@ -361,6 +373,8 @@ export function X402PaymentModal({
                   <p className="text-[11px] text-rose-300/80">
                     {telemetry?.requiresFunds
                       ? "Copy the agent wallet address above, claim free USDC from Circle Faucet on Base Sepolia, then retry."
+                      : errorMsg?.includes("X402_BUYER_PRIVATE_KEY")
+                      ? "Add X402_BUYER_PRIVATE_KEY to your .env file or deployment environment variables, then restart the server."
                       : "The x402 exact-payment scheme requires a valid signature and facilitator settlement verification."}
                   </p>
                 </div>
@@ -519,13 +533,18 @@ export function X402PaymentModal({
               type="button"
               size="sm"
               onClick={handlePayAndResearch}
-              disabled={isLoading}
-              className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs px-4 flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
+              disabled={isLoading || agentWallet?.configured === false}
+              className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs px-4 flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin" />
                   Processing x402 Payment...
+                </>
+              ) : agentWallet?.configured === false ? (
+                <>
+                  <Lock className="size-3.5" />
+                  Wallet Not Configured
                 </>
               ) : (
                 <>
