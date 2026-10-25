@@ -12,10 +12,10 @@
   <a href="https://intora-uwwg.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-intora--uwwg.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
   <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4"><img src="https://img.shields.io/badge/Demo%20Video-Watch%20Walkthrough-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Demo Video" /></a>
   <a href="https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f"><img src="https://img.shields.io/badge/Network-Base%20Sepolia%20(84532)-0052FF?style=for-the-badge&logo=coinbase&logoColor=white" alt="Base Sepolia" /></a>
-  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.4.0-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.4.3-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></a>
   <a href="https://aistudio.google.com/"><img src="https://img.shields.io/badge/AI%20Engine-Gemini%202.5%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini" /></a>
   <a href="#-official-x402-protocol-implementation-autonomous-agent-payments"><img src="https://img.shields.io/badge/Payments-x402%20Protocol%20(Base%20Sepolia)-8A2BE2?style=for-the-badge&logo=ethereum&logoColor=white" alt="x402 Protocol" /></a>
-  <img src="https://img.shields.io/badge/Tests-192%20Passed-success?style=for-the-badge&logo=vitest&logoColor=white" alt="192 Tests Passed" />
+  <img src="https://img.shields.io/badge/Tests-194%20Passed-success?style=for-the-badge&logo=vitest&logoColor=white" alt="194 Tests Passed" />
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" /></a>
 </p>
 
@@ -46,7 +46,7 @@
 - [🛠️ Tech Stack & Dependencies](#️-tech-stack--dependencies)
 - [📜 Deployed Smart Contract Details](#-deployed-smart-contract-details)
 - [⚡ Quickstart & Local Installation](#-quickstart--local-installation)
-- [🧪 Comprehensive Test Suite (192 Tests)](#-comprehensive-test-suite-192-tests)
+- [🧪 Comprehensive Test Suite (194 Tests)](#-comprehensive-test-suite-194-tests)
 - [🚀 Future Scope & Roadmap](#-future-scope--roadmap)
 - [⚠️ Security, Limitations & Disclaimers](#️-security-limitations--disclaimers)
 - [📄 License & Authors](#-license--authors)
@@ -74,6 +74,12 @@ Unlike conventional shopping assistants that act as simple conversational chatbo
 ## 🎥 Demo Video Walkthrough
 
 Watch the complete demonstration of Intora — from natural-language shopping requirement and budget optimization with Gemini, to MetaMask plan approval, What-If simulation revisions, and on-chain cryptographic verification on Base Sepolia:
+
+<p align="center">
+  <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4">
+    <img src="https://img.shields.io/badge/▶_Watch_Walkthrough_Video-Cloudinary_Direct_Stream-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo Video" />
+  </a>
+</p>
 
 <p align="center">
   <video src="https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4" controls width="100%" style="max-width: 800px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
@@ -291,6 +297,10 @@ sequenceDiagram
    - Intora **never** fakes transaction hashes, simulates fake receipts, or renders hardcoded hashes. Failed transactions or unfunded testnet attempts explicitly report error states (`Payment required` / `Failed`) with direct faucet links.
 5. **Clean EOA Requirement:**
    - Base Sepolia USDC validates standard ECDSA signatures via EIP-3009. Test wallets must be clean EOAs without foreign EIP-7702 bytecode delegations to prevent ERC-1271 reverts.
+6. **Serverless & Read-Only Resilience:**
+   - In serverless hosting environments (e.g. Vercel) where the local filesystem is ephemeral or read-only, Intora maintains an in-memory cached test agent account fallback to ensure uninterrupted wallet operations.
+7. **Startup & Facilitator Failover (`ResilientFacilitatorClient`):**
+   - Employs a resilient facilitator client that gracefully falls back to static Base Sepolia exact scheme configurations during server startup if the external facilitator endpoint is experiencing transient network issues.
 
 ### End-to-End Live Demonstration Steps
 
@@ -381,7 +391,7 @@ const CANDIDATE_MODELS = [
 
 | Layer | Technology | Version | Description |
 | :--- | :--- | :--- | :--- |
-| **Framework** | [Next.js](https://nextjs.org/) | `16.4.0` | React framework with Turbopack bundler & App Router |
+| **Framework** | [Next.js](https://nextjs.org/) | `16.4.3` | React framework with Turbopack bundler & App Router |
 | **UI Library** | [React](https://react.dev/) | `19.3.0` | Latest React with Server Components & Hooks |
 | **Language** | [TypeScript](https://www.typescriptlang.org/) | `5.9.3` | Strict type checking with custom exclusions |
 | **Styling** | [Tailwind CSS](https://tailwindcss.com/) | `4.3.3` | Utility-first responsive CSS engine |
@@ -481,38 +491,39 @@ If deploying or hosting Intora on **Vercel**:
 
 ---
 
-## 🧪 Comprehensive Test Suite (192 Tests)
+## 🧪 Comprehensive Test Suite (194 Tests)
 
-Intora includes an end-to-end test suite of **192 automated tests** across **12 specialized test suites**:
+Intora includes an end-to-end test suite of **194 passing automated tests** (195 total) across **13 specialized test suites**:
 
 ```bash
-# Run the complete test suite (192 tests)
+# Run the complete test suite (195 tests)
 npm test
 
-# Run only x402 protocol integration tests (9 tests)
+# Run only x402 protocol integration tests (11 tests)
 npm run test:x402
 ```
 
 ### Test Suite Breakdown:
 
 ```
-✔ catalog.test.ts                     # Catalog loading, INR formatting, validation
-✔ phase1.test.ts                      # Canonical JSON serialization, Keccak256 hashing
-✔ phase2.test.ts                      # 8 controlled Gemini tools, transaction preparation
-✔ ShoppingIntentRegistry.test.ts      # Hardhat Solidity tests on Base Sepolia invariants
-✔ phase6.test.ts                      # Application edge cases, hash mismatch detection
-✔ scraperapi.test.ts                  # Amazon India live integration, secret masking, retry
-✔ api-plan-generate.test.ts           # Plan generation API validation & budget checks
-✔ budget-optimizer.test.ts            # Knapsack optimization, alternative swaps
-✔ trade-off-engine.test.ts            # Total purchase cost, shipping, value scoring
-✔ what-if-simulator.test.ts           # Scenario execution, multi-version snapshotting, diffs
-✔ product-budget-matching.test.ts     # Target price vs. basket cap intent matching
-✔ x402.test.ts                        # x402 HTTP 402 negotiation, EIP-3009 typed auth, Base Sepolia USDC, spend caps
+✔ catalog.test.ts                         # Catalog loading, INR formatting, validation
+✔ phase1.test.ts                          # Canonical JSON serialization, Keccak256 hashing
+✔ phase2.test.ts                          # 8 controlled Gemini tools, transaction preparation
+✔ ShoppingIntentRegistry.test.ts          # Hardhat Solidity tests on Base Sepolia invariants
+✔ phase6.test.ts                          # Application edge cases, hash mismatch detection
+✔ scraperapi.test.ts                      # Amazon India live integration, secret masking, retry
+✔ scraperapi-timeouts-and-quota.test.ts   # Upstream timeouts, quota exhaustion, provider failovers
+✔ api-plan-generate.test.ts               # Plan generation API validation & budget checks
+✔ budget-optimizer.test.ts                # Knapsack optimization, alternative swaps
+✔ trade-off-engine.test.ts                # Total purchase cost, shipping, value scoring
+✔ what-if-simulator.test.ts               # Scenario execution, multi-version snapshotting, diffs
+✔ product-budget-matching.test.ts         # Target price vs. basket cap intent matching
+✔ x402.test.ts                            # x402 HTTP 402 negotiation, EIP-3009 typed auth, Base Sepolia USDC, spend caps
 ```
 
 **Results:**
-- Total Tests: `193`
-- Passed: `192`
+- Total Tests: `195`
+- Passed: `194`
 - Skipped: `1` (Opt-in live network ScraperAPI test; set `RUN_LIVE_SCRAPERAPI_TESTS=true` to run live)
 - Failed: `0`
 
