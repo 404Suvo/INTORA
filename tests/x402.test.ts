@@ -242,4 +242,38 @@ describe("x402 Protocol Implementation Test Suite", () => {
     const res = await GET(req);
     assert.strictEqual(res.status, 402);
   });
+
+  // Test 10: Wallet Status API Endpoint Serialization & Diagnostics (/api/x402/wallet)
+  it("GET /api/x402/wallet returns HTTP 200 with valid JSON without BigInt serialization errors", async () => {
+    const { GET } = await import("../app/api/x402/wallet/route");
+    const res = await GET();
+
+    assert.strictEqual(res.status, 200, "Must return HTTP 200 OK");
+    const body = await res.json();
+
+    assert.strictEqual(typeof body.configured, "boolean");
+    assert.strictEqual(body.network, X402_NETWORK);
+    assert.strictEqual(body.chainId, BASE_SEPOLIA_CHAIN_ID);
+    assert.ok(body.balances, "Must include balances object");
+    assert.strictEqual(typeof body.balances.usdcBalance, "string");
+    assert.strictEqual(typeof body.balances.ethBalance, "string");
+    assert.strictEqual(typeof body.balances.rawUsdcBalance, "string", "rawUsdcBalance must be string-serialized, never a raw BigInt");
+    assert.strictEqual(typeof body.balances.hasUsdcFunds, "boolean");
+    assert.ok(["available", "partial", "unavailable"].includes(body.balances.status));
+    assert.strictEqual(body.privateKey, undefined, "Must NEVER leak privateKey in response");
+  });
+
+  // Test 11: Balance Query Resilience & Graceful Error Handling
+  it("safely handles balance query results without misrepresenting unavailable status as zero", async () => {
+    const { getAgentWalletBalances } = await import("../lib/x402-config");
+    const account = getAgentAccount();
+    assert.ok(account, "Agent account must exist for test");
+
+    const balances = await getAgentWalletBalances(account.address);
+    assert.strictEqual(typeof balances.rawUsdcBalance, "string");
+    assert.strictEqual(typeof balances.usdcBalance, "string");
+    assert.strictEqual(typeof balances.ethBalance, "string");
+    assert.strictEqual(typeof balances.hasUsdcFunds, "boolean");
+    assert.ok(["available", "partial", "unavailable"].includes(balances.status));
+  });
 });

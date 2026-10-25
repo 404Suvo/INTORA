@@ -65,20 +65,34 @@ export function getAgentAccount() {
 
   if (envKey && envKey.trim().length > 0) {
     const trimmed = envKey.trim();
-    const formatted = (trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`) as Hex;
-    return privateKeyToAccount(formatted);
+    if (trimmed.includes("_") || trimmed.length < 64) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[x402-config] Agent private key contains placeholder or invalid format. Falling back.");
+      }
+    } else {
+      try {
+        const formatted = (trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`) as Hex;
+        return privateKeyToAccount(formatted);
+      } catch (err: any) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[x402-config] Could not initialize account from environment private key:", err?.message);
+        }
+      }
+    }
   }
 
   // Fallback: load or generate local dedicated test-only agent wallet
   try {
     if (fs.existsSync(AGENT_WALLET_FILE)) {
       const content = JSON.parse(fs.readFileSync(AGENT_WALLET_FILE, "utf8"));
-      if (content?.privateKey) {
+      if (content?.privateKey && typeof content.privateKey === "string" && !content.privateKey.includes("_")) {
         return privateKeyToAccount(content.privateKey as Hex);
       }
     }
   } catch (err) {
-    console.warn("[x402-config] Could not read existing .agent-wallet.json:", err);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[x402-config] Could not read existing .agent-wallet.json:", err);
+    }
   }
 
   // Generate a dedicated test wallet if none exists
@@ -108,8 +122,10 @@ export function getSellerAddress(): Address {
   if (process.env.DEPLOYER_PRIVATE_KEY) {
     try {
       const key = process.env.DEPLOYER_PRIVATE_KEY.trim();
-      const formatted = (key.startsWith("0x") ? key : `0x${key}`) as Hex;
-      return privateKeyToAccount(formatted).address;
+      if (!key.includes("_") && key.length >= 64) {
+        const formatted = (key.startsWith("0x") ? key : `0x${key}`) as Hex;
+        return privateKeyToAccount(formatted).address;
+      }
     } catch {
       // fallback
     }
@@ -118,30 +134,42 @@ export function getSellerAddress(): Address {
   return "0x1eC6F66Fe81A2F01Ee95F1D58FCea2522B9eC9d3" as Address;
 }
 
-/**
- * Queries the agent wallet's live on-chain balances on Base Sepolia.
- */
-export async function getAgentWalletBalances(address: Address): Promise<{
+export interface AgentWalletBalances {
   ethBalance: string;
   usdcBalance: string;
-  rawUsdcBalance: bigint;
+  rawUsdcBalance: string;
   hasUsdcFunds: boolean;
-}> {
+  status: "available" | "partial" | "unavailable";
+  errorMessage?: string;
+}
+
+/**
+ * Queries the agent wallet's live on-chain balances on Base Sepolia.
+ * Returns string-serialized numeric values so responses are safely JSON-serializable.
+ */
+export async function getAgentWalletBalances(address: Address): Promise<AgentWalletBalances> {
   const client = getBaseSepoliaPublicClient();
 
-  let ethBalance = "0";
-  let usdcBalance = "0";
-  let rawUsdcBalance = 0n;
+  let ethBalance = "unknown";
+  let usdcBalance = "unknown";
+  let rawUsdcBalanceBigInt = 0n;
+  let ethSuccess = false;
+  let usdcSuccess = false;
+  let lastError: string | undefined;
 
   try {
     const ethWei = await client.getBalance({ address });
     ethBalance = Number(formatEther(ethWei)).toFixed(4);
-  } catch (err) {
-    console.warn("[x402-config] Failed to fetch ETH balance:", err);
+    ethSuccess = true;
+  } catch (err: any) {
+    lastError = err?.shortMessage || err?.message || "Failed to fetch ETH balance";
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[x402-config] Failed to fetch ETH balance from Base Sepolia RPC:", lastError);
+    }
   }
 
   try {
-    rawUsdcBalance = await client.readContract({
+    rawUsdcBalanceBigInt = await client.readContract({
       address: BASE_SEPOLIA_USDC_ADDRESS,
       abi: [
         {
@@ -155,19 +183,32 @@ export async function getAgentWalletBalances(address: Address): Promise<{
       functionName: "balanceOf",
       args: [address],
     });
-    usdcBalance = formatUnits(rawUsdcBalance, USDC_DECIMALS);
-  } catch (err) {
-    console.warn("[x402-config] Failed to fetch USDC balance:", err);
+    usdcBalance = formatUnits(rawUsdcBalanceBigInt, USDC_DECIMALS);
+    usdcSuccess = true;
+  } catch (err: any) {
+    lastError = err?.shortMessage || err?.message || "Failed to fetch USDC balance";
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[x402-config] Failed to fetch USDC balance from Base Sepolia RPC:", lastError);
+    }
   }
 
   // Needs at least 0.01 USDC (10,000 atomic units)
-  const hasUsdcFunds = rawUsdcBalance >= 10000n;
+  const hasUsdcFunds = usdcSuccess && rawUsdcBalanceBigInt >= 10000n;
+
+  const queryStatus: "available" | "partial" | "unavailable" =
+    ethSuccess && usdcSuccess
+      ? "available"
+      : ethSuccess || usdcSuccess
+      ? "partial"
+      : "unavailable";
 
   return {
     ethBalance,
     usdcBalance,
-    rawUsdcBalance,
+    rawUsdcBalance: rawUsdcBalanceBigInt.toString(),
     hasUsdcFunds,
+    status: queryStatus,
+    ...(queryStatus !== "available" && lastError ? { errorMessage: lastError } : {}),
   };
 }
 
@@ -190,7 +231,22 @@ export async function getAgentPublicStatus() {
     };
   }
 
-  const balances = await getAgentWalletBalances(account.address);
+  let balances: AgentWalletBalances;
+  try {
+    balances = await getAgentWalletBalances(account.address);
+  } catch (err: any) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[x402-config] Unexpected error querying agent wallet balances:", err);
+    }
+    balances = {
+      ethBalance: "unknown",
+      usdcBalance: "unknown",
+      rawUsdcBalance: "0",
+      hasUsdcFunds: false,
+      status: "unavailable",
+      errorMessage: err?.message || "RPC query failed",
+    };
+  }
 
   return {
     configured: true,

@@ -1,14 +1,29 @@
 import { NextResponse } from "next/server";
 import { getAgentPublicStatus, getAgentAccount } from "@/lib/x402-config";
 
+/**
+ * Safely serializes objects containing BigInt values without throwing TypeError.
+ */
+function safeJsonResponse(data: any, init?: ResponseInit) {
+  const sanitized = JSON.parse(
+    JSON.stringify(data, (_, value) =>
+      typeof value === "bigint" ? value.toString() : value
+    )
+  );
+  return NextResponse.json(sanitized, init);
+}
+
 // GET /api/x402/wallet -> public status of the agent wallet
 export async function GET() {
   try {
     const status = await getAgentPublicStatus();
-    return NextResponse.json(status);
+    return safeJsonResponse(status);
   } catch (err: any) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[api/x402/wallet] GET failed:", err);
+    }
     return NextResponse.json(
-      { error: err?.message || "Failed to query agent wallet status" },
+      { error: "Failed to query agent wallet status" },
       { status: 500 }
     );
   }
@@ -25,14 +40,17 @@ export async function POST() {
       );
     }
     const status = await getAgentPublicStatus();
-    return NextResponse.json({
+    return safeJsonResponse({
       success: true,
       address: account.address,
       status,
     });
   } catch (err: any) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[api/x402/wallet] POST failed:", err);
+    }
     return NextResponse.json(
-      { error: err?.message || "Wallet creation failed" },
+      { error: "Wallet initialization failed" },
       { status: 500 }
     );
   }

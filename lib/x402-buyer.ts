@@ -294,6 +294,7 @@ export async function executePaidResearch(options: ExecutePaymentOptions): Promi
     // Check if testnet USDC is available in wallet
     const balances = await getAgentWalletBalances(account.address);
     if (!balances.hasUsdcFunds) {
+      const isRpcUnavailable = balances.status === "unavailable";
       return {
         status: "Payment required",
         service: "Intora Deep Product Intelligence",
@@ -306,9 +307,11 @@ export async function executePaidResearch(options: ExecutePaymentOptions): Promi
         receiverAddress: receiver,
         transactionHash: null,
         explorerUrl: null,
-        errorMessage: `Agent wallet has insufficient Base Sepolia USDC balance (${balances.usdcBalance} USDC available, ${quotedUsd} USDC required). Obtain free testnet USDC from the Circle faucet.`,
+        errorMessage: isRpcUnavailable
+          ? `Could not verify Base Sepolia USDC balance due to RPC error (${balances.errorMessage || "network error"}). Please retry in a moment.`
+          : `Agent wallet has insufficient Base Sepolia USDC balance (${balances.usdcBalance} USDC available, ${quotedUsd} USDC required). Obtain free testnet USDC from the Circle faucet.`,
         isRetryable: true,
-        requiresFunds: true,
+        requiresFunds: !isRpcUnavailable,
         faucetUrl: "https://faucet.circle.com/",
       };
     }
