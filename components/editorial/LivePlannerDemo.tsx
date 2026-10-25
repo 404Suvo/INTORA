@@ -1033,10 +1033,10 @@ export function LivePlannerDemo({
                         setX402ResearchProduct(currentPlan.items[0]?.name);
                         setX402ModalOpen(true);
                       }}
-                      className="px-4 py-2.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-950/30 transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 hover:bg-emerald-200 text-emerald-950 border-2 border-emerald-600 hover:border-emerald-700 transition shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-[0.98]"
                       title="Run paid market research and counterfeit check via x402 on Base Sepolia"
                     >
-                      <Zap className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <Zap className="w-3.5 h-3.5 text-emerald-700 fill-emerald-600 shrink-0" />
                       <span>Deep Research (x402)</span>
                     </button>
                     <button
