@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://intora-uwwg.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-intora--uwwg.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
+  <a href="https://intora-n6qv.vercel.app/"><img src="https://img.shields.io/badge/Live%20Demo-intora--n6qv.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" /></a>
   <a href="https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4"><img src="https://img.shields.io/badge/Demo%20Video-Watch%20Walkthrough-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Demo Video" /></a>
   <a href="https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f"><img src="https://img.shields.io/badge/Network-Base%20Sepolia%20(84532)-0052FF?style=for-the-badge&logo=coinbase&logoColor=white" alt="Base Sepolia" /></a>
   <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-16.4.3-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" /></a>
@@ -64,7 +64,7 @@ Unlike conventional shopping assistants that act as simple conversational chatbo
 4. **Real-world Amazon India product catalog integration** via ScraperAPI with zero-hallucination guarantees and secret masking.
 5. **Non-custodial cryptographic auditability** on Base Sepolia using `ShoppingIntentRegistry.sol`.
 
-* **Live Web Application:** [https://intora-uwwg.vercel.app/](https://intora-uwwg.vercel.app/)
+* **Live Web Application:** [https://intora-n6qv.vercel.app/](https://intora-n6qv.vercel.app/)
 * **Demo Video Walkthrough:** [Watch Video (Cloudinary MP4)](https://res.cloudinary.com/u0zkue69/video/upload/v1792339681/Recording_2026-10-18_213000_1_wp27fi.mp4)
 * **Smart Contract on Base Sepolia:** [`0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f`](https://sepolia.basescan.org/address/0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f)
 * **GitHub Repository:** [https://github.com/404Suvo/INTORA](https://github.com/404Suvo/INTORA)
@@ -560,5 +560,5 @@ npm run test:x402
 Distributed under the [MIT License](./LICENSE). Designed and built with ❤️ by [Suvo](https://github.com/404Suvo).
 
 <p align="center">
-  <a href="https://github.com/404Suvo/INTORA">⭐ Star us on GitHub</a> • <a href="https://intora-uwwg.vercel.app/">Try Live Demo</a>
+  <a href="https://github.com/404Suvo/INTORA">⭐ Star us on GitHub</a> • <a href="https://intora-n6qv.vercel.app/">Try Live Demo</a>
 </p>
