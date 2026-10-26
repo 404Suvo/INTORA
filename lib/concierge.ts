@@ -1,6 +1,16 @@
-import { PRODUCT_CATALOG, searchCatalog, formatInr } from "./catalog";
-import { generatePlan } from "./stubs";
-import { ShoppingPlanData, MOCK_PLANS, ProductItem } from "@/data/mockData";
+/**
+ * CLIENT-FACING CONCIERGE & ASK INTORA INTERFACE
+ *
+ * Provides client helpers for interacting with Ask Intora:
+ * - Multi-turn conversation management
+ * - Contextual application telemetry (route, plan status, active budget, active errors)
+ * - Streaming response parser via Server-Sent Events (SSE)
+ * - Resilient fallback to grounded local engine if network fails
+ */
+
+import { ShoppingPlanData } from "@/data/mockData";
+import { PRODUCT_CATALOG } from "./catalog";
+import { INTORA_KNOWLEDGE } from "./intora-knowledge";
 
 export interface ConciergeProduct {
   id: string;
@@ -17,527 +27,400 @@ export interface ConciergeResponse {
   planSnippet?: ShoppingPlanData;
   products?: ConciergeProduct[];
   suggestedPrompts?: string[];
+  toolTraces?: Array<{ tool: string; args: unknown; result: unknown }>;
+  isError?: boolean;
 }
 
-/**
- * Helper to convert catalog item to concierge product item
- */
-function toConciergeProduct(p: (typeof PRODUCT_CATALOG)[number]): ConciergeProduct {
-  return {
-    id: p.id,
-    name: p.name,
-    category: p.category,
-    priceRupees: p.priceMinor / 100,
-    inStock: p.inStock,
-    unit: p.unit,
-    description: p.description,
+export interface ClientContextPayload {
+  pathname?: string;
+  hasPlan?: boolean;
+  planSummary?: {
+    id?: string;
+    title?: string;
+    situation?: string;
+    budget?: number;
+    totalAmount?: number;
+    remainingAmount?: number;
+    itemCount?: number;
+    version?: number;
+    planHash?: string;
+    isBudgetCompliant?: boolean;
   };
+  activeBudget?: number;
+  activeError?: {
+    message?: string;
+    errorCode?: string;
+    isTimeout?: boolean;
+    isRetryable?: boolean;
+  } | string | null;
+  walletAccount?: string | null;
+  walletChainId?: number | null;
 }
 
 /**
- * Intelligent local customer concierge engine.
- * Ensures the bot is always warm, polite, articulate, and accurate
- * even if the Gemini API has exhausted its quota or is offline.
+ * Intelligent deterministic local reply grounded in authoritative INTORA_KNOWLEDGE.
+ * Runs in browser if network is completely offline.
  */
-export function getLocalConciergeReply(userMessage: string): ConciergeResponse {
+export function getLocalConciergeReply(
+  userMessage: string,
+  context?: ClientContextPayload
+): ConciergeResponse {
   const q = userMessage.toLowerCase().trim();
 
-  // 1. GREETINGS & POLITE INTROS
-  const isGreeting =
-    /^(hi|hello|hey|greetings|namaste|good (morning|afternoon|evening)|howdy|sup)[\s!.]*$/i.test(q) ||
-    /^(who are you|what is your name|what can you do|introduce yourself)/i.test(q);
+  // 1. Out-of-scope filter
+  const isOutOfScope =
+    /^(write a (poem|story|song|essay|python script|code)|who is the president|what is the capital of|solve this equation|help with (my )?homework)/i.test(
+      q
+    ) &&
+    !q.includes("intora") &&
+    !q.includes("plan") &&
+    !q.includes("shopping") &&
+    !q.includes("budget") &&
+    !q.includes("base sepolia") &&
+    !q.includes("metamask") &&
+    !q.includes("x402");
 
-  if (isGreeting) {
+  if (isOutOfScope) {
     return {
-      text:
-        "Hello! Welcome to Intora. I am your personal customer service concierge.\n\n" +
-        "I'm delighted to assist you with anything you need today! Here is how I can help:\n" +
-        "• **Product Inquiries**: Ask for snacks, stationery, electronics, water bottles, and essentials.\n" +
-        "• **Curated Shopping Plans**: Tell me your event (e.g. college fest, monsoon trek, hostel setup) and budget in ₹.\n" +
-        "• **Platform & Blockchain**: Learn how our catalog verification and Base Sepolia MetaMask commitments work.\n\n" +
-        "How may I be of service to you today?",
+      text: INTORA_KNOWLEDGE.scopeBoundaries.declineMessage,
       suggestedPrompts: [
-        "I want snacks 🍫",
-        "College Fest under ₹3,000 🎒",
-        "What is Intora? 💡",
-        "How does MetaMask work? 🦊",
+        "How do I create a shopping plan? 🎒",
+        "How does the budget optimizer work? 💡",
+        "How does x402 work in Intora? ⚡",
+        "How do I verify a plan on Base Sepolia? ⛓️",
       ],
     };
   }
 
-  // 2. GRATITUDE & POLITE CLOSINGS
+  // 2. Greetings
   if (
-    /^(thanks|thank you|thank you so much|thx|awesome|great|perfect|cool|ok thanks|bye|goodbye|see you)[\s!.]*$/i.test(q)
+    /\b(hi|hello|hey|greetings|namaste|good morning|good afternoon|good evening|who are you|what can you (help|do)|help me|introduce yourself)\b/i.test(
+      q
+    )
   ) {
     return {
       text:
-        "You are most welcome! It is truly my pleasure to assist you.\n\n" +
-        "If you have any more questions or would like to explore custom shopping plans later, I will be right here. Have a wonderful day!",
+        `Hello! I am **Ask Intora**, your conversational AI guide for the Intora website.\n\n` +
+        `I'm delighted to assist you today! Here is what I can help you with:\n` +
+        `• **Create & Revise Shopping Plans**: Provide a situation and rupee budget (₹100 to ₹2,00,000).\n` +
+        `• **Budget Optimization & Trade-Offs**: Understand how our knapsack optimizer protects essential items.\n` +
+        `• **x402 Micro-Payments**: Learn how AI agents pay $0.01 USDC on Base Sepolia for deep research.\n` +
+        `• **Base Sepolia Commitments**: Verify tamper-proof Keccak-256 hashes via MetaMask.\n` +
+        `• **Troubleshooting**: Diagnose search timeouts, 4001 wallet rejections, or budget shortfalls.\n\n` +
+        `How may I assist you today?`,
       suggestedPrompts: [
-        "Show all categories",
-        "College Fest ₹3,000",
-        "What is Intora?",
+        "How do I create a shopping plan? 🎒",
+        "What if I change the budget? 💰",
+        "How does x402 work in Intora? ⚡",
+        "How do I verify my plan on Base Sepolia? ⛓️",
       ],
     };
   }
 
-  // 3. ABOUT INTORA / HOW IT WORKS / FAQ
+  // 3. Simplified explanation
   if (
-    q.includes("what is intora") ||
-    q.includes("who is intora") ||
-    q.includes("how does it work") ||
-    q.includes("how it works") ||
-    q.includes("about intora")
+    q.includes("explain that more simply") ||
+    q.includes("simpler") ||
+    q.includes("simple terms") ||
+    q.includes("eli5")
   ) {
     return {
       text:
-        "Intora is an AI-powered intent-to-commerce platform designed to remove the hassle from event and trip shopping.\n\n" +
-        "Instead of searching dozens of individual store pages, you simply describe your situation (like a 3-day college festival or a weekend trek) and your budget cap in ₹.\n\n" +
-        "**How It Works:**\n" +
-        "1. **Intelligent Planning**: Our AI optimizes a verified bundle from our catalog, strictly respecting your budget ceiling.\n" +
-        "2. **Real Catalog Inventory**: Every item, stock status, and price is grounded in our authoritative database.\n" +
-        "3. **Base Sepolia Verification**: Once satisfied, you can record a cryptographic Keccak-256 hash of your plan on Base Sepolia via MetaMask for tamper-proof proof of agreed items and pricing before ordering.",
+        `Certainly! Here is Intora in simple terms:\n\n` +
+        `1. **You describe your event and budget**: You tell us what you're planning and your budget ceiling in rupees.\n` +
+        `2. **Intora selects verified products**: It picks real items that fit your budget, swapping expensive brands for cheaper ones so you don't overspend.\n` +
+        `3. **You lock in a digital receipt**: You can record the approved plan onto the Base Sepolia testnet using MetaMask. It's free and creates permanent proof of what was agreed.\n\n` +
+        `Would you like to try making a plan in the Live Demo?`,
       suggestedPrompts: [
-        "College Fest under ₹3,000",
-        "How does MetaMask work?",
-        "Browse Snacks",
+        "How do I create a shopping plan? 🎒",
+        "How does the budget optimizer work? 💡",
+        "How do I verify a plan on Base Sepolia? ⛓️",
       ],
     };
   }
 
-  // 4. METAMASK & BLOCKCHAIN COMMITMENTS FAQ
+  // 4. How to create a plan
   if (
-    q.includes("metamask") ||
+    q.includes("create a shopping plan") ||
+    q.includes("how do i make a plan") ||
+    q.includes("how to plan")
+  ) {
+    return {
+      text:
+        `Creating a shopping plan on Intora is simple:\n\n` +
+        `**What it does**: Curates a complete bundle of genuine catalog items strictly respecting your rupee budget.\n\n` +
+        `**Where to go**:\n` +
+        `• On the **Home Page**: Scroll down to the **Live Planner Demo** ('#demo').\n` +
+        `• Or open the **Full Planner** at \`/planner\` for version branching and What-If simulations.\n\n` +
+        `**Steps**:\n` +
+        `1. Enter your situation (e.g. *"College fest for 50 students"*).\n` +
+        `2. Set your rupee budget (between ₹100 and ₹2,00,000).\n` +
+        `3. Click **'Optimize Plan'** (or **'Generate Intelligent Plan'** on \`/planner\`).\n` +
+        `4. Review the items, total cost, and buffer.\n` +
+        `5. Click **'Approve Plan & Record on Chain'** to commit your plan on Base Sepolia.`,
+      suggestedPrompts: [
+        "What if I change the budget? 💰",
+        "How do I verify my plan on Base Sepolia? ⛓️",
+        "How does the What-If simulator work? 🔮",
+      ],
+    };
+  }
+
+  // 5. Changing budget
+  if (q.includes("change the budget") || q.includes("budget optimizer") || q.includes("cheaper")) {
+    return {
+      text:
+        `Here is how Intora handles budget changes:\n\n` +
+        `• **Integer Paise Calculation**: Intora computes all prices in integer paise (1 INR = 100 paise) between ₹100 and ₹2,00,000.\n` +
+        `• **Reducing Budget**: Our knapsack optimizer automatically swaps items for cheaper alternatives via the **Trade-Off Engine** or removes optional items, preserving what is essential.\n` +
+        `• **What-If Simulator**: In \`/planner\`, enter scenario prompts like *"Cut budget by 20%"* to create a non-destructive Version 2 with a side-by-side diff.\n` +
+        `• **Infeasible Overruns**: If essential items exceed the budget, Intora states the shortfall honestly rather than fabricating fake prices.`,
+      suggestedPrompts: [
+        "What is the What-If simulator? 🔮",
+        "How does the Trade-Off engine work? ⚖️",
+        "How do I create a shopping plan? 🎒",
+      ],
+    };
+  }
+
+  // 6. x402 Protocol
+  if (q.includes("x402") || q.includes("http 402") || q.includes("payment status")) {
+    return {
+      text:
+        `**x402 Protocol in Intora**:\n\n` +
+        `• **Purpose**: Enables autonomous agent micro-payments ($0.01 USDC on Base Sepolia) to unlock verified deep product intelligence (\`/api/research/product\`).\n` +
+        `• **Workflow**: The agent signs an **EIP-3009** authorization and submits it to the facilitator (https://x402.org/facilitator) without requiring real user funds.\n` +
+        `• **7 Payment Lifecycle Statuses**:\n` +
+        `  1. *Ready*\n` +
+        `  2. *Payment required*\n` +
+        `  3. *Authorizing*\n` +
+        `  4. *Submitting settlement*\n` +
+        `  5. *Confirmed* (with Basescan txHash link)\n` +
+        `  6. *Failed*\n` +
+        `  7. *Pending verification*\n\n` +
+        `*Rule: HTTP 200 alone is never proof of settlement without verified Basescan telemetry.*`,
+      suggestedPrompts: [
+        "How do I verify a plan on Base Sepolia? ⛓️",
+        "Why did my product search fail? 🔍",
+        "How do I create a shopping plan? 🎒",
+      ],
+    };
+  }
+
+  // 7. Blockchain verification
+  if (
     q.includes("blockchain") ||
+    q.includes("verify my plan") ||
     q.includes("base sepolia") ||
-    q.includes("on chain") ||
-    q.includes("record on chain") ||
-    q.includes("hash")
+    q.includes("metamask")
   ) {
     return {
       text:
-        "Great question! When you approve a shopping plan on Intora, we generate a deterministic Keccak-256 hash representing your exact items, quantities, and agreed total in ₹.\n\n" +
-        "**Why record it on Base Sepolia?**\n" +
-        "• **Tamper-Proof Evidence**: Neither buyer nor merchant can secretly alter prices or SKUs after approval.\n" +
-        "• **Transparent Audit Trail**: Every revision creates a new version linked to the same intent ID.\n" +
-        "• **Completely Safe & Free**: We operate on Base Sepolia testnet, meaning it requires only free testnet gas and does not charge real money.\n\n" +
-        "You can test this right now in our Live Demo above!",
+        `**Base Sepolia Blockchain Commitments**:\n\n` +
+        `• **Contract**: \`ShoppingIntentRegistry\` at \`0xb3bfe4b59fefb1fdac47f1185a09ebece05e961f\` on Base Sepolia (Chain ID 84532).\n` +
+        `• **What It Does**: Records a deterministic **Keccak-256** hash of your approved plan, ensuring nobody can alter the agreed SKUs, quantities, or prices.\n` +
+        `• **How to Verify**:\n` +
+        `  1. Click **'Approve Plan & Record on Chain'** in the Live Demo or \`/planner\`.\n` +
+        `  2. Ensure MetaMask is on Base Sepolia.\n` +
+        `  3. Confirm the free testnet transaction in MetaMask.\n` +
+        `  4. View the permanent proof on Basescan or in \`/history\`.\n\n` +
+        `*Notice: This is completely free on testnet. It does not place an order or charge a credit card.*`,
       suggestedPrompts: [
-        "College Fest under ₹3,000",
-        "Is it free to use?",
-        "What is Intora?",
+        "Where can I find the transaction hash? 🔗",
+        "What if I reject the MetaMask popup? 🦊",
+        "How does the What-If simulator work? 🔮",
       ],
     };
   }
 
-  // 5. IS IT FREE / PRICING FAQ
+  // 8. Search failure troubleshooting
   if (
-    q.includes("is it free") ||
-    q.includes("cost anything") ||
-    q.includes("charge real money") ||
-    q.includes("real money")
+    q.includes("product search fail") ||
+    q.includes("search fail") ||
+    q.includes("search failing") ||
+    q.includes("timeout")
   ) {
     return {
       text:
-        "Yes, using Intora is completely free! Exploring our catalog, curating custom shopping plans, and testing MetaMask on-chain commitments on the Base Sepolia testnet incurs no charges.\n\n" +
-        "All product prices listed in our catalog are in Indian Rupees (₹) for transparent shopping planning.",
-      suggestedPrompts: ["Browse Snacks", "College Fest under ₹3,000", "What stationery do you have?"],
-    };
-  }
-
-  // 6. HOW TO ORDER / EDIT
-  if (
-    q.includes("how to order") ||
-    q.includes("how do i buy") ||
-    q.includes("purchase") ||
-    q.includes("checkout")
-  ) {
-    return {
-      text:
-        "Ordering with Intora is straightforward and transparent:\n\n" +
-        "1. **Select or Describe a Situation**: Pick a situation preset or type your custom shopping need with your budget in ₹.\n" +
-        "2. **Review in Live Demo**: Click 'Load in Live Demo' on any curated plan to inspect items, adjust quantities, or swap products.\n" +
-        "3. **Approve & Commit**: Click 'Approve Plan & Record on Chain' to verify your plan hash via MetaMask on Base Sepolia.\n\n" +
-        "Would you like me to curate a starter plan for you now?",
+        `Product search may encounter an issue due to:\n\n` +
+        `1. **ScraperAPI Timeout (504 PROVIDER_TIMEOUT)**: Amazon India search timed out (>20s) due to upstream latency. Click **'Retry Search'** or submit your prompt again.\n` +
+        `2. **Missing ScraperAPI Key (503)**: Intora automatically falls back to its 50+ item verified in-memory catalog.\n` +
+        `3. **Gemini Quota (429)**: Free-tier limit reached; Intora's circuit breaker runs the deterministic catalog optimizer.\n` +
+        `4. **MetaMask Rejection (4001)**: You cancelled the popup. Simply click confirm when ready.`,
       suggestedPrompts: [
-        "College Fest under ₹3,000",
-        "Monsoon Trek under ₹4,500",
-        "Freshers' Week under ₹2,000",
+        "How do I create a shopping plan? 🎒",
+        "How does the budget optimizer work? 💡",
+        "What items are in the catalog? 📦",
       ],
     };
   }
 
-  // 7. SPECIFIC PRODUCT & CATEGORY INQUIRIES
-  // A. Snacks & Food
-  if (
-    q.includes("snack") ||
-    q.includes("snacks") ||
-    q.includes("food") ||
-    q.includes("energy bar") ||
-    q.includes("granola") ||
-    q.includes("electrolyte") ||
-    q.includes("drink mix") ||
-    q.includes("eat")
-  ) {
-    const snacks = PRODUCT_CATALOG.filter((p) => p.category === "snacks");
-    const conciergeSnacks = snacks.map(toConciergeProduct);
-
+  // 9. Non-existent feature
+  if (q.includes("bitcoin") || q.includes("lightning") || q.includes("pizza") || q.includes("flight")) {
     return {
       text:
-        "We have delicious, high-quality snacks and hydration options in our catalog! Here is what is currently available:\n\n" +
-        conciergeSnacks
+        `Intora does not support this feature.\n\n` +
+        `Intora specializes in **budget-grounded shopping plans**, **x402 USDC micro-payments**, and **Base Sepolia blockchain commitments**. It does not support Bitcoin Lightning, food delivery, or travel bookings.`,
+      suggestedPrompts: [
+        "How do I create a shopping plan? 🎒",
+        "How does x402 work in Intora? ⚡",
+        "How do I verify on Base Sepolia? ⛓️",
+      ],
+    };
+  }
+
+  // 10. Catalog search
+  const matched = PRODUCT_CATALOG.filter(
+    (p) =>
+      q.includes(p.name.toLowerCase()) ||
+      q.includes(p.category.toLowerCase()) ||
+      q.includes(p.id.toLowerCase())
+  );
+
+  if (matched.length > 0) {
+    return {
+      text:
+        `Here are matching verified items from our catalog:\n\n` +
+        matched
+          .slice(0, 5)
           .map(
-            (s) =>
-              `• **${s.name}** – ₹${s.priceRupees.toFixed(2)}\n  *${s.description}* (${s.inStock ? "In Stock" : "Out of Stock"})`
+            (p) =>
+              `• **${p.name}** (₹${p.priceMinor / 100}) - *${p.category}*\n  ${p.description} (${p.inStock ? "In Stock" : "Out of Stock"})`
           )
           .join("\n\n") +
-        "\n\nWould you like me to prepare a customized snack bundle within your budget (e.g. *'snack bundle under ₹1,000'*), or pair them with hydration gear?",
-      products: conciergeSnacks,
+        `\n\nWould you like me to curate a customized bundle with these items for your budget?`,
+      products: matched.slice(0, 5).map((p) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        priceRupees: p.priceMinor / 100,
+        inStock: p.inStock,
+        unit: p.unit,
+        description: p.description,
+      })),
       suggestedPrompts: [
-        "Curate a Snack Bundle under ₹1,000",
-        "Add Stainless Water Bottle ₹450",
-        "Monsoon Trek under ₹4,500",
+        "Create a plan with these items 🎒",
+        "What is the budget optimizer? 💰",
+        "How does MetaMask verification work? 🦊",
       ],
     };
   }
 
-  // B. Stationery & Study Supplies
-  if (
-    q.includes("stationery") ||
-    q.includes("notebook") ||
-    q.includes("pen") ||
-    q.includes("pens") ||
-    q.includes("highlighter") ||
-    q.includes("sticky notes") ||
-    q.includes("pencil") ||
-    q.includes("study")
-  ) {
-    const stationery = PRODUCT_CATALOG.filter((p) => p.category === "stationery");
-    const conciergeStationery = stationery.map(toConciergeProduct);
-
-    return {
-      text:
-        "We have premium student and office stationery available in our catalog! Here are our selections:\n\n" +
-        conciergeStationery
-          .map(
-            (s) =>
-              `• **${s.name}** – ₹${s.priceRupees.toFixed(2)}\n  *${s.description}* (${s.inStock ? "In Stock" : "Out of Stock"})`
-          )
-          .join("\n\n") +
-        "\n\nWould you like me to build a study kit or combine these with a backpack and power bank for campus?",
-      products: conciergeStationery,
-      suggestedPrompts: [
-        "Study Bundle under ₹1,500",
-        "College Fest under ₹3,000",
-        "Add Campus Backpack ₹899",
-      ],
-    };
-  }
-
-  // C. Electronics & Gadgets
-  if (
-    q.includes("electronic") ||
-    q.includes("power bank") ||
-    q.includes("battery") ||
-    q.includes("charger") ||
-    q.includes("usb") ||
-    q.includes("flash drive") ||
-    q.includes("earphone") ||
-    q.includes("headphone")
-  ) {
-    const electronics = PRODUCT_CATALOG.filter((p) => p.category === "electronics");
-    const conciergeElectronics = electronics.map(toConciergeProduct);
-
-    return {
-      text:
-        "Here are the electronic essentials currently in our catalog:\n\n" +
-        conciergeElectronics
-          .map(
-            (s) =>
-              `• **${s.name}** – ₹${s.priceRupees.toFixed(2)}\n  *${s.description}* (${s.inStock ? "In Stock" : "Out of Stock"})`
-          )
-          .join("\n\n") +
-        "\n\nOur 10,000mAh Power Bank and 64GB USB 3.2 Drive are campus favorites! Would you like me to include them in a custom plan?",
-      products: conciergeElectronics,
-      suggestedPrompts: [
-        "Tech Bundle under ₹2,000",
-        "College Fest under ₹3,000",
-        "Show Stationery Items",
-      ],
-    };
-  }
-
-  // D. General Supplies / Bags / Bottles / First Aid
-  if (
-    q.includes("bottle") ||
-    q.includes("backpack") ||
-    q.includes("bag") ||
-    q.includes("first aid") ||
-    q.includes("lanyard") ||
-    q.includes("supplies")
-  ) {
-    const supplies = PRODUCT_CATALOG.filter((p) => p.category === "supplies");
-    const conciergeSupplies = supplies.map(toConciergeProduct);
-
-    return {
-      text:
-        "Here are the campus and travel supplies available in our catalog:\n\n" +
-        conciergeSupplies
-          .map(
-            (s) =>
-              `• **${s.name}** – ₹${s.priceRupees.toFixed(2)}\n  *${s.description}* (${s.inStock ? "In Stock" : "Out of Stock"})`
-          )
-          .join("\n\n") +
-        "\n\nWould you like to bundle our insulated bottle and backpack for your daily commute?",
-      products: conciergeSupplies,
-      suggestedPrompts: [
-        "Campus Pack under ₹2,500",
-        "Monsoon Trek under ₹4,500",
-        "Browse Snacks",
-      ],
-    };
-  }
-
-  // E. Hygiene & Health
-  if (q.includes("sanitizer") || q.includes("hygiene") || q.includes("clean") || q.includes("mask")) {
-    const hygiene = PRODUCT_CATALOG.filter((p) => p.category === "hygiene");
-    const conciergeHygiene = hygiene.map(toConciergeProduct);
-
-    return {
-      text:
-        "Here are our personal hygiene essentials:\n\n" +
-        conciergeHygiene
-          .map(
-            (s) =>
-              `• **${s.name}** – ₹${s.priceRupees.toFixed(2)}\n  *${s.description}* (${s.inStock ? "In Stock" : "Out of Stock"})`
-          )
-          .join("\n\n") +
-        "\n\nOur Pocket Hand Sanitizer Spray is compact and includes moisturizing aloe vera. Would you like me to add it to your plan?",
-      products: conciergeHygiene,
-      suggestedPrompts: [
-        "Add Sanitizer to College Fest",
-        "Show Travel First Aid Kit",
-        "Browse Snacks",
-      ],
-    };
-  }
-
-  // F. General Catalog / Products Overview
-  if (
-    q.includes("what products") ||
-    q.includes("what items") ||
-    q.includes("what do you sell") ||
-    q.includes("show products") ||
-    q.includes("all products") ||
-    q.includes("catalog")
-  ) {
-    return {
-      text:
-        "Intora offers verified, high-utility campus and travel essentials across 5 categories:\n\n" +
-        "• **🍫 Snacks**: Nutty Granola Energy Bars (₹300), Electrolyte Hydration Packets (₹150)\n" +
-        "• **✏️ Stationery**: Spiral Notebooks (₹250), Gel Pens (₹120), Pastel Highlighters (₹160), Sticky Notes (₹110)\n" +
-        "• **🎒 Supplies**: Campus Daypack (₹899), Insulated Water Bottle (₹450), Travel First Aid Kit (₹220), ID Lanyard (₹80)\n" +
-        "• **⚡ Electronics**: 10,000mAh Power Bank (₹999), 64GB USB Drive (₹499), Wired Earphones (₹349)\n" +
-        "• **🧼 Hygiene**: Pocket Hand Sanitizer Spray (₹99)\n\n" +
-        "Which category would you like to explore further, or would you like me to plan a complete bundle for an occasion?",
-      suggestedPrompts: [
-        "I want snacks 🍫",
-        "Show stationery ✏️",
-        "College Fest under ₹3,000 🎒",
-        "Monsoon Trek under ₹4,500 ⛰️",
-      ],
-    };
-  }
-
-  // 8. SITUATIONS & BUNDLE GENERATION
-  // Check if user is asking for a snack bundle specifically
-  if (
-    (q.includes("snack") || q.includes("granola")) &&
-    (q.includes("bundle") || q.includes("pack") || q.includes("kit") || q.includes("plan") || q.includes("under") || q.includes("budget"))
-  ) {
-    let budget = 1000;
-    const budgetMatch = q.match(/(?:rs\.?|₹|inr|budget(?: is| of)?|under|cap)\s*[:=]?\s*([0-9]+(?:,[0-9]+)*)/i);
-    if (budgetMatch) {
-      const parsed = parseInt(budgetMatch[1].replace(/,/g, ""), 10);
-      if (!isNaN(parsed) && parsed > 0) budget = Math.min(200000, parsed);
-    }
-
-    const energyBarQty = Math.max(1, Math.min(3, Math.floor(budget / 450)));
-    const electrolyteQty = Math.max(1, Math.min(3, Math.floor((budget - energyBarQty * 300) / 150)));
-    const total = energyBarQty * 300 + electrolyteQty * 150;
-
-    const plan: ShoppingPlanData = {
-      id: "snack-hydration-bundle",
-      title: "Nutritious Snack & Hydration Bundle",
-      situation: userMessage,
-      budget: budget,
-      totalAmount: total,
-      remainingAmount: budget - total,
-      version: 1,
-      timestamp: new Date().toISOString(),
-      planHash: "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
-      items: [
-        {
-          id: "energy-bar-box",
-          name: "Nutty Granola Energy Bars (Box of 6)",
-          category: "snacks",
-          quantity: energyBarQty,
-          unitPrice: 300,
-          totalPrice: energyBarQty * 300,
-          rationale: "Wholesome oats, almonds, and honey snack bars for quick sustained energy.",
-          inStock: true,
-          imagePlaceholder: "bg-amber-100 text-amber-800",
-          badge: "Essential",
-        },
-        {
-          id: "electrolyte-hydration-powder",
-          name: "Electrolyte Hydration Drink Mix (Pack of 6)",
-          category: "snacks",
-          quantity: electrolyteQty,
-          unitPrice: 150,
-          totalPrice: electrolyteQty * 150,
-          rationale: "Rapid hydration and mineral balance for busy schedule.",
-          inStock: true,
-          imagePlaceholder: "bg-blue-100 text-blue-800",
-          badge: "Hydration",
-        },
-      ],
-      validation: {
-        budgetCompliant: true,
-        catalogGrounded: true,
-        integerPaiseExact: true,
-        allInStock: true,
-      },
-    };
-
-    return {
-      text:
-        `I have curated a personalized **Nutritious Snack & Hydration Bundle** for you!\n\n` +
-        `• **${energyBarQty}x Nutty Granola Energy Bars (Box of 6)**: ₹${(energyBarQty * 300).toLocaleString("en-IN")}\n` +
-        `• **${electrolyteQty}x Electrolyte Hydration Drink Mix (Pack of 6)**: ₹${(electrolyteQty * 150).toLocaleString("en-IN")}\n\n` +
-        `**Total**: ₹${total.toLocaleString("en-IN")} (leaving ₹${budget - total} buffer under your ₹${budget.toLocaleString("en-IN")} budget).\n\n` +
-        `Click **Load in Live Demo** below to inspect or add this to your live plan!`,
-      planSnippet: plan,
-      suggestedPrompts: [
-        "Add Stainless Water Bottle ₹450",
-        "College Fest under ₹3,000",
-        "How to record on chain?",
-      ],
-    };
-  }
-
-  // Check general event / preset situation triggers
-  const isCollegeFest = q.includes("college") || q.includes("fest") || q.includes("kolkata") || q.includes("cultural");
-  const isTrek = q.includes("trek") || q.includes("hike") || q.includes("rajmachi") || q.includes("mountain") || q.includes("monsoon");
-  const isHostel = q.includes("hostel") || q.includes("dorm") || q.includes("room");
-  const isFreshers = q.includes("fresher") || q.includes("freshers") || q.includes("orientation");
-  const isDiwali = q.includes("diwali") || q.includes("festival") || q.includes("festive") || q.includes("gift");
-  const hasBudgetExplicit = /(?:rs\.?|₹|inr|budget(?: is| of)?|under|cap)\s*[:=]?\s*([0-9]+(?:,[0-9]+)*)/i.test(q);
-
-  if (isCollegeFest || isTrek || isHostel || isFreshers || isDiwali || hasBudgetExplicit) {
-    let budget = 3000;
-    const budgetMatch = q.match(/(?:rs\.?|₹|inr|budget(?: is| of)?|under|cap)\s*[:=]?\s*([0-9]+(?:,[0-9]+)*)/i);
-    if (budgetMatch) {
-      const parsed = parseInt(budgetMatch[1].replace(/,/g, ""), 10);
-      if (!isNaN(parsed) && parsed > 0) budget = Math.min(200000, parsed);
-    } else if (isTrek) {
-      budget = 4500;
-    } else if (isHostel) {
-      budget = 6000;
-    } else if (isFreshers) {
-      budget = 2000;
-    } else if (isDiwali) {
-      budget = 5000;
-    }
-
-    let situationTitle = "Curated Shopping Bundle";
-    if (isCollegeFest) situationTitle = "3-Day College Event Kit";
-    else if (isTrek) situationTitle = "Monsoon Trekking Kit";
-    else if (isHostel) situationTitle = "Hostel Essentials Pack";
-    else if (isFreshers) situationTitle = "Freshers' Orientation Kit";
-    else if (isDiwali) situationTitle = "Festive Gifting Hamper";
-
-    let templateKey: keyof typeof MOCK_PLANS = "college-fest";
-    if (isTrek) templateKey = "trekking-trip";
-    else if (isHostel) templateKey = "hostel-setup";
-    else if (isDiwali) templateKey = "diwali-gifting";
-    else if (isFreshers) templateKey = "freshers-week";
-
-    const base = MOCK_PLANS[templateKey] || MOCK_PLANS["college-fest"];
-
-    // Scale items to fit budget cleanly
-    const items = [...base.items];
-    let currentTotal = items.reduce((acc, curr) => acc + curr.totalPrice, 0);
-
-    const plan: ShoppingPlanData = {
-      ...base,
-      id: `${templateKey}-${Date.now()}`,
-      title: situationTitle,
-      situation: userMessage,
-      budget: budget,
-      totalAmount: Math.min(currentTotal, budget),
-      remainingAmount: Math.max(0, budget - Math.min(currentTotal, budget)),
-      version: 1,
-      timestamp: new Date().toISOString(),
-    };
-
-    return {
-      text:
-        `I would be delighted to help you prepare! I have curated a **${situationTitle}** tailored to your situation.\n\n` +
-        `• **Items Included**: ${plan.items.length} verified catalog products\n` +
-        `• **Total Cost**: ₹${plan.totalAmount.toLocaleString("en-IN")}\n` +
-        `• **Budget Buffer**: ₹${plan.remainingAmount.toLocaleString("en-IN")} safely remaining under your ₹${plan.budget.toLocaleString("en-IN")} cap\n\n` +
-        `Every product is in stock and priced in exact rupees. Click **Load in Live Demo** below to explore and review your plan!`,
-      planSnippet: plan,
-      suggestedPrompts: [
-        "How do I record on chain?",
-        "Can I add more snacks?",
-        "What is Intora?",
-      ],
-    };
-  }
-
-  // 9. GENERAL COURTEOUS CATCH-ALL
+  // 11. Catch-all
   return {
     text:
-      "Thank you for reaching out! I would love to assist you with that.\n\n" +
-      "Could you please share a little more detail? For example:\n" +
-      "• If you're looking for items, try asking: *'I want snacks'*, *'Show stationery'*, or *'What electronics do you have?'*\n" +
-      "• If you're preparing for an event or trip, let me know your situation and budget: e.g. *'College fest under ₹3,000'* or *'Weekend trek under ₹4,500'*.\n" +
-      "• If you have questions about our platform, ask *'How does MetaMask verification work?'*\n\n" +
-      "I'm at your service!",
+      `I am **Ask Intora**, your specialized AI guide for the Intora website.\n\n` +
+      `I can help you:\n` +
+      `• Create and optimize shopping plans within rupee budgets (₹100 to ₹2,00,000).\n` +
+      `• Understand the *What-If Simulator* and *Trade-Off Engine*.\n` +
+      `• Explain *x402 micro-payments* ($0.01 USDC on Base Sepolia).\n` +
+      `• Guide you through *Base Sepolia MetaMask verification*.\n` +
+      `• Troubleshoot search timeouts or wallet errors.\n\n` +
+      `What would you like to explore?`,
     suggestedPrompts: [
-      "I want snacks 🍫",
-      "Show stationery ✏️",
-      "College Fest under ₹3,000 🎒",
-      "What is Intora? 💡",
+      "How do I create a shopping plan? 🎒",
+      "What if I change the budget? 💰",
+      "How does x402 work in Intora? ⚡",
+      "How do I verify my plan on Base Sepolia? ⛓️",
     ],
   };
 }
 
 /**
- * Main concierge entrypoint:
- * Attempts to query the live Gemini chat API route first.
- * If the API is unavailable, offline, or rate-limited, immediately falls back
- * to the deterministic high-quality local concierge engine.
+ * Main client function to get an Ask Intora response.
+ * Supports streaming callbacks, client context forwarding, and seamless fallback.
  */
 export async function getConciergeResponse(
   userMessage: string,
-  history: Array<{ sender: "user" | "bot"; text: string }> = []
+  history: Array<{ sender: "user" | "bot"; text: string }> = [],
+  context?: ClientContextPayload,
+  onChunk?: (chunk: string, accumulated: string) => void
 ): Promise<ConciergeResponse> {
-  // If client-side, attempt to call server API routes
-  if (typeof window !== "undefined") {
-    const formattedMessages = [...history, { sender: "user", text: userMessage }];
+  const formattedMessages = [...history, { sender: "user", text: userMessage }];
 
-    // 1. First try /api/chat
+  if (typeof window !== "undefined") {
+    // 1. Try streaming request via /api/chat if onChunk callback provided
+    if (onChunk) {
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: formattedMessages,
+            context,
+            stream: true,
+          }),
+        });
+
+        if (res.ok && res.body) {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let accumulatedText = "";
+          let finalResponse: ConciergeResponse | null = null;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunkStr = decoder.decode(value, { stream: true });
+            const lines = chunkStr.split("\n");
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const eventData = JSON.parse(line.slice(6));
+                  if (eventData.type === "chunk" && eventData.text) {
+                    accumulatedText += eventData.text;
+                    onChunk(eventData.text, accumulatedText);
+                  } else if (eventData.type === "done") {
+                    finalResponse = {
+                      text: eventData.text || accumulatedText,
+                      planSnippet: eventData.planSnippet,
+                      products: eventData.products,
+                      suggestedPrompts: eventData.suggestedPrompts,
+                      toolTraces: eventData.toolTraces,
+                    };
+                  }
+                } catch {
+                  // Partial JSON chunk
+                }
+              }
+            }
+          }
+
+          if (finalResponse) {
+            return finalResponse;
+          }
+
+          if (accumulatedText.trim()) {
+            return {
+              text: accumulatedText.trim(),
+              suggestedPrompts: [
+                "How do I create a shopping plan? 🎒",
+                "How does x402 work in Intora? ⚡",
+                "How do I verify on Base Sepolia? ⛓️",
+              ],
+            };
+          }
+        }
+      } catch (streamErr) {
+        console.warn("[Ask Intora] Stream fetch failed, attempting non-streaming:", streamErr);
+      }
+    }
+
+    // 2. Standard non-streaming POST /api/chat
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: formattedMessages }),
+        body: JSON.stringify({
+          messages: formattedMessages,
+          context,
+          stream: false,
+        }),
         signal: controller.signal,
       });
 
@@ -551,43 +434,15 @@ export async function getConciergeResponse(
             planSnippet: data.planSnippet,
             products: data.products,
             suggestedPrompts: data.suggestedPrompts,
+            toolTraces: data.toolTraces,
           };
         }
       }
-    } catch {
-      // Continue to secondary endpoint
-    }
-
-    // 2. Secondary try /api/agent with mode: "concierge"
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-      const res = await fetch("/api/agent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "concierge", messages: formattedMessages }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.text) {
-          return {
-            text: data.text,
-            planSnippet: data.planSnippet,
-            products: data.products,
-            suggestedPrompts: data.suggestedPrompts,
-          };
-        }
-      }
-    } catch {
-      // Fall through to local concierge engine
+    } catch (apiErr) {
+      console.warn("[Ask Intora] API chat route failed, falling back to local engine:", apiErr);
     }
   }
 
-  // 3. Flawless, courteous local concierge fallback
-  return getLocalConciergeReply(userMessage);
+  // 3. Resilient deterministic local fallback
+  return getLocalConciergeReply(userMessage, context);
 }

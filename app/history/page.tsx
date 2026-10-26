@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { MOCK_VERSION_HISTORY, PlanVersionRecord } from "@/data/mockData";
+import { FloatingChat } from "@/components/editorial/FloatingChat";
 
 export default function HistoryPage() {
   const [historyList, setHistoryList] = useState<PlanVersionRecord[]>(MOCK_VERSION_HISTORY);
@@ -331,6 +332,13 @@ export default function HistoryPage() {
           </div>
         </div>
       )}
+
+      {/* Ask Intora Assistant */}
+      <FloatingChat
+        initialContext={{
+          pathname: "/history",
+        }}
+      />
     </div>
   );
 }

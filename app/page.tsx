@@ -120,6 +120,26 @@ export default function Home() {
           setActivePrompt(prompt);
           setActiveBudget(budget);
         }}
+        initialContext={{
+          pathname: "/",
+          hasPlan: Boolean(activePlan),
+          planSummary: activePlan
+            ? {
+                id: activePlan.id,
+                title: activePlan.title,
+                situation: activePlan.situation,
+                budget: activePlan.budget,
+                totalAmount: activePlan.totalAmount,
+                remainingAmount: activePlan.remainingAmount,
+                itemCount: activePlan.items?.length || 0,
+                version: activePlan.version || 1,
+                planHash: activePlan.planHash,
+                isBudgetCompliant: activePlan.validation?.budgetCompliant !== false,
+              }
+            : undefined,
+          activeBudget,
+          walletAccount,
+        }}
       />
 
       {/* Transaction Approval Modal (MetaMask-style popup) */}

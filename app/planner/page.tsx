@@ -33,6 +33,7 @@ import { WhatIfSimulatorPanel } from "@/components/what-if/WhatIfSimulatorPanel"
 import { ScenarioTimeline } from "@/components/what-if/ScenarioTimeline";
 import { VersionComparisonModal } from "@/components/what-if/VersionComparisonModal";
 import { PlanVersionRecord, PlanComparisonResult } from "@/lib/what-if/types";
+import { FloatingChat } from "@/components/editorial/FloatingChat";
 
 export default function FullPlannerPage() {
   const [currentPlan, setCurrentPlan] = useState<ShoppingPlanData>(
@@ -1365,6 +1366,35 @@ export default function FullPlannerPage() {
           onPreferenceChange={handlePreferenceChange}
         />
       )}
+
+      {/* Ask Intora Floating Assistant */}
+      <FloatingChat
+        onPlanCreated={(prompt, b) => {
+          setSituationPrompt(prompt);
+          setBudget(b);
+        }}
+        initialContext={{
+          pathname: "/planner",
+          hasPlan: Boolean(currentPlan),
+          planSummary: currentPlan
+            ? {
+                id: currentPlan.id,
+                title: currentPlan.title,
+                situation: currentPlan.situation,
+                budget: currentPlan.budget,
+                totalAmount: currentPlan.totalAmount,
+                remainingAmount: currentPlan.remainingAmount,
+                itemCount: currentPlan.items?.length || 0,
+                version: currentPlan.version || 1,
+                planHash: currentPlan.planHash,
+                isBudgetCompliant: currentPlan.validation?.budgetCompliant !== false,
+              }
+            : undefined,
+          activeBudget: budget,
+          activeError: structuredError || apiError,
+          walletAccount,
+        }}
+      />
     </div>
   );
 }
